@@ -5,11 +5,21 @@ import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useAppStore } from '@/store';
 import { Sparkles, Check } from 'lucide-react-native';
-import { BodyType, SkinTone, StylePreference } from '@/types';
+import { 
+  Height, BodyShape, SkinTone, Undertone, StylePreference, 
+  CoveragePreference, OccasionFrequency, ColorComfort 
+} from '@/types';
 
-const BODY_TYPES: BodyType[] = ['Petite', 'Athletic', 'Curvy', 'Plus', 'Tall'];
+const HEIGHTS: Height[] = ['Petite', 'Average', 'Tall'];
+const BODY_SHAPES: BodyShape[] = ['Hourglass', 'Pear', 'Apple', 'Rectangle', 'Inverted Triangle'];
 const SKIN_TONES: SkinTone[] = ['Fair', 'Wheatish', 'Dusky', 'Deep'];
+const UNDERTONES: Undertone[] = ['Warm', 'Cool', 'Neutral'];
 const STYLES: StylePreference[] = ['Minimal', 'Ethnic', 'Western', 'Fusion', 'Streetwear'];
+const COVERAGE_PREFERENCES: CoveragePreference[] = ['Modest', 'Moderate', 'Open'];
+const OCCASION_FREQUENCIES: OccasionFrequency[] = [
+  'Mostly Casual', 'Mix of Everything', 'Lots of Functions and Events', 'Professional Environment Daily'
+];
+const COLOR_COMFORTS: ColorComfort[] = ['Neutrals Only', 'Some Color', 'Bold and Colorful'];
 
 export default function OnboardingScreen() {
   const colorScheme = useColorScheme();
@@ -17,15 +27,25 @@ export default function OnboardingScreen() {
   const saveProfile = useAppStore((state) => state.saveProfile);
 
   // Selections
-  const [bodyType, setBodyType] = useState<BodyType>('Curvy');
+  const [height, setHeight] = useState<Height>('Average');
+  const [bodyShape, setBodyShape] = useState<BodyShape>('Hourglass');
   const [skinTone, setSkinTone] = useState<SkinTone>('Wheatish');
+  const [undertone, setUndertone] = useState<Undertone>('Neutral');
   const [stylePref, setStylePref] = useState<StylePreference>('Fusion');
+  const [coveragePref, setCoveragePref] = useState<CoveragePreference>('Moderate');
+  const [occasionFreq, setOccasionFreq] = useState<OccasionFrequency>('Mix of Everything');
+  const [colorComfort, setColorComfort] = useState<ColorComfort>('Some Color');
 
   const handleComplete = () => {
     saveProfile({
-      bodyType,
+      height,
+      bodyShape,
       skinTone,
+      undertone,
       stylePreference: stylePref,
+      coveragePreference: coveragePref,
+      occasionFrequency: occasionFreq,
+      colorComfort,
     });
   };
 
@@ -45,16 +65,16 @@ export default function OnboardingScreen() {
         </Text>
       </View>
 
-      {/* Step 1: Body Type */}
+      {/* Step 1: Height */}
       <View style={[styles.stepCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <Text style={[styles.stepLabel, { color: theme.text }]}>1. Select Body Type</Text>
+        <Text style={[styles.stepLabel, { color: theme.text }]}>1. Select Height</Text>
         <RNView style={styles.chipRow}>
-          {BODY_TYPES.map((type) => {
-            const isSelected = bodyType === type;
+          {HEIGHTS.map((h) => {
+            const isSelected = height === h;
             return (
               <TouchableOpacity
-                key={type}
-                onPress={() => setBodyType(type)}
+                key={h}
+                onPress={() => setHeight(h)}
                 style={[
                   styles.chip,
                   {
@@ -65,7 +85,7 @@ export default function OnboardingScreen() {
               >
                 {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
                 <Text style={[styles.chipText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
-                  {type}
+                  {h}
                 </Text>
               </TouchableOpacity>
             );
@@ -73,9 +93,37 @@ export default function OnboardingScreen() {
         </RNView>
       </View>
 
-      {/* Step 2: Skin Tone */}
+      {/* Step 2: Body Shape */}
       <View style={[styles.stepCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <Text style={[styles.stepLabel, { color: theme.text }]}>2. Select Skin Tone</Text>
+        <Text style={[styles.stepLabel, { color: theme.text }]}>2. Select Body Shape</Text>
+        <RNView style={styles.chipRow}>
+          {BODY_SHAPES.map((shape) => {
+            const isSelected = bodyShape === shape;
+            return (
+              <TouchableOpacity
+                key={shape}
+                onPress={() => setBodyShape(shape)}
+                style={[
+                  styles.chip,
+                  {
+                    backgroundColor: isSelected ? theme.tint : 'transparent',
+                    borderColor: isSelected ? theme.tint : theme.border,
+                  }
+                ]}
+              >
+                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
+                <Text style={[styles.chipText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
+                  {shape}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </RNView>
+      </View>
+
+      {/* Step 3: Skin Tone */}
+      <View style={[styles.stepCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        <Text style={[styles.stepLabel, { color: theme.text }]}>3. Select Skin Tone</Text>
         <RNView style={styles.chipRow}>
           {SKIN_TONES.map((tone) => {
             const isSelected = skinTone === tone;
@@ -101,9 +149,37 @@ export default function OnboardingScreen() {
         </RNView>
       </View>
 
-      {/* Step 3: Style Preference */}
+      {/* Step 4: Undertone */}
       <View style={[styles.stepCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <Text style={[styles.stepLabel, { color: theme.text }]}>3. Primary Fashion Style</Text>
+        <Text style={[styles.stepLabel, { color: theme.text }]}>4. Select Undertone</Text>
+        <RNView style={styles.chipRow}>
+          {UNDERTONES.map((u) => {
+            const isSelected = undertone === u;
+            return (
+              <TouchableOpacity
+                key={u}
+                onPress={() => setUndertone(u)}
+                style={[
+                  styles.chip,
+                  {
+                    backgroundColor: isSelected ? theme.tint : 'transparent',
+                    borderColor: isSelected ? theme.tint : theme.border,
+                  }
+                ]}
+              >
+                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
+                <Text style={[styles.chipText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
+                  {u}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </RNView>
+      </View>
+
+      {/* Step 5: Style Preference */}
+      <View style={[styles.stepCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        <Text style={[styles.stepLabel, { color: theme.text }]}>5. Primary Fashion Style</Text>
         <RNView style={styles.chipRow}>
           {STYLES.map((style) => {
             const isSelected = stylePref === style;
@@ -122,6 +198,90 @@ export default function OnboardingScreen() {
                 {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
                 <Text style={[styles.chipText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
                   {style}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </RNView>
+      </View>
+
+      {/* Step 6: Coverage Preference */}
+      <View style={[styles.stepCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        <Text style={[styles.stepLabel, { color: theme.text }]}>6. Coverage Preference</Text>
+        <RNView style={styles.chipRow}>
+          {COVERAGE_PREFERENCES.map((c) => {
+            const isSelected = coveragePref === c;
+            return (
+              <TouchableOpacity
+                key={c}
+                onPress={() => setCoveragePref(c)}
+                style={[
+                  styles.chip,
+                  {
+                    backgroundColor: isSelected ? theme.tint : 'transparent',
+                    borderColor: isSelected ? theme.tint : theme.border,
+                  }
+                ]}
+              >
+                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
+                <Text style={[styles.chipText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
+                  {c}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </RNView>
+      </View>
+
+      {/* Step 7: Occasion Frequency */}
+      <View style={[styles.stepCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        <Text style={[styles.stepLabel, { color: theme.text }]}>7. Occasion Frequency</Text>
+        <RNView style={styles.chipRow}>
+          {OCCASION_FREQUENCIES.map((occ) => {
+            const isSelected = occasionFreq === occ;
+            return (
+              <TouchableOpacity
+                key={occ}
+                onPress={() => setOccasionFreq(occ)}
+                style={[
+                  styles.chip,
+                  {
+                    backgroundColor: isSelected ? theme.tint : 'transparent',
+                    borderColor: isSelected ? theme.tint : theme.border,
+                  }
+                ]}
+              >
+                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
+                <Text style={[styles.chipText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
+                  {occ}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </RNView>
+      </View>
+
+      {/* Step 8: Color Comfort */}
+      <View style={[styles.stepCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        <Text style={[styles.stepLabel, { color: theme.text }]}>8. Color Comfort</Text>
+        <RNView style={styles.chipRow}>
+          {COLOR_COMFORTS.map((col) => {
+            const isSelected = colorComfort === col;
+            return (
+              <TouchableOpacity
+                key={col}
+                onPress={() => setColorComfort(col)}
+                style={[
+                  styles.chip,
+                  {
+                    backgroundColor: isSelected ? theme.tint : 'transparent',
+                    borderColor: isSelected ? theme.tint : theme.border,
+                  }
+                ]}
+              >
+                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
+                <Text style={[styles.chipText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
+                  {col}
                 </Text>
               </TouchableOpacity>
             );

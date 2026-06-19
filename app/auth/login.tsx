@@ -16,19 +16,32 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
       setError('Please fill in all fields');
       return;
     }
     setError('');
-    // For MVP & demonstration, let's login directly
-    login(email, 'Fashionista');
+    setLoading(true);
+    try {
+      await login(email, password);
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during login');
+      setLoading(false);
+    }
   };
 
-  const handleGuestLogin = () => {
-    login('guest@kloset.com', 'Guest Stylist');
+  const handleGuestLogin = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      await login('guest@kloset.com', '');
+    } catch (err: any) {
+      setError(err.message || 'An error occurred');
+      setLoading(false);
+    }
   };
 
   return (
@@ -68,6 +81,7 @@ export default function LoginScreen() {
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
+              editable={!loading}
               style={[styles.input, { color: theme.text }]}
             />
           </RNView>
@@ -84,29 +98,31 @@ export default function LoginScreen() {
               onChangeText={setPassword}
               secureTextEntry
               autoCapitalize="none"
+              editable={!loading}
               style={[styles.input, { color: theme.text }]}
             />
           </RNView>
 
           {/* Forget Password */}
-          <TouchableOpacity style={styles.forgotBtn}>
+          <TouchableOpacity style={styles.forgotBtn} disabled={loading}>
             <Text style={[styles.forgotText, { color: theme.tint }]}>Forgot Password?</Text>
           </TouchableOpacity>
 
           {/* Login Button */}
           <TouchableOpacity 
             onPress={handleLogin}
-            style={[styles.loginBtn, { backgroundColor: theme.tint }]}
+            disabled={loading}
+            style={[styles.loginBtn, { backgroundColor: loading ? theme.tabIconDefault : theme.tint }]}
             activeOpacity={0.8}
           >
-            <Text style={styles.loginBtnText}>Sign In</Text>
-            <ArrowRight size={18} color="#FFFFFF" />
+            <Text style={styles.loginBtnText}>{loading ? 'Signing In...' : 'Sign In'}</Text>
+            {!loading && <ArrowRight size={18} color="#FFFFFF" />}
           </TouchableOpacity>
 
           {/* Sign Up Link */}
           <RNView style={styles.signupPrompt}>
             <Text style={[styles.promptText, { color: theme.tabIconDefault }]}>Don't have an account? </Text>
-            <TouchableOpacity onPress={() => router.push('/auth/signup')}>
+            <TouchableOpacity onPress={() => router.push('/auth/signup')} disabled={loading}>
               <Text style={[styles.promptAction, { color: theme.tint }]}>Sign Up</Text>
             </TouchableOpacity>
           </RNView>
@@ -122,6 +138,7 @@ export default function LoginScreen() {
         {/* Guest Access Button */}
         <TouchableOpacity 
           onPress={handleGuestLogin}
+          disabled={loading}
           style={[styles.guestBtn, { borderColor: theme.border, backgroundColor: theme.card }]}
           activeOpacity={0.8}
         >

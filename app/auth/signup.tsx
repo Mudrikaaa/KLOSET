@@ -17,15 +17,25 @@ export default function SignupScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSignup = () => {
+  const handleSignup = async () => {
     if (!name || !email || !password) {
       setError('Please fill in all fields');
       return;
     }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
     setError('');
-    // Save credentials in our Zustand state store
-    signup(email, name);
+    setLoading(true);
+    try {
+      await signup(email, password, name);
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during registration');
+      setLoading(false);
+    }
   };
 
   return (
@@ -64,6 +74,7 @@ export default function SignupScreen() {
               value={name}
               onChangeText={setName}
               autoCapitalize="words"
+              editable={!loading}
               style={[styles.input, { color: theme.text }]}
             />
           </RNView>
@@ -80,6 +91,7 @@ export default function SignupScreen() {
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
+              editable={!loading}
               style={[styles.input, { color: theme.text }]}
             />
           </RNView>
@@ -96,6 +108,7 @@ export default function SignupScreen() {
               onChangeText={setPassword}
               secureTextEntry
               autoCapitalize="none"
+              editable={!loading}
               style={[styles.input, { color: theme.text }]}
             />
           </RNView>
@@ -103,17 +116,18 @@ export default function SignupScreen() {
           {/* Signup Button */}
           <TouchableOpacity 
             onPress={handleSignup}
-            style={[styles.loginBtn, { backgroundColor: theme.tint }]}
+            disabled={loading}
+            style={[styles.loginBtn, { backgroundColor: loading ? theme.tabIconDefault : theme.tint }]}
             activeOpacity={0.8}
           >
-            <Text style={styles.loginBtnText}>Register Account</Text>
-            <ArrowRight size={18} color="#FFFFFF" />
+            <Text style={styles.loginBtnText}>{loading ? 'Registering...' : 'Register Account'}</Text>
+            {!loading && <ArrowRight size={18} color="#FFFFFF" />}
           </TouchableOpacity>
 
           {/* Redirect to Login */}
           <RNView style={styles.signupPrompt}>
             <Text style={[styles.promptText, { color: theme.tabIconDefault }]}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => router.replace('/auth/login')}>
+            <TouchableOpacity onPress={() => router.replace('/auth/login')} disabled={loading}>
               <Text style={[styles.promptAction, { color: theme.tint }]}>Sign In</Text>
             </TouchableOpacity>
           </RNView>

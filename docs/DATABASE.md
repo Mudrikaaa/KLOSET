@@ -99,23 +99,28 @@ interface UserStyleProfile {
   id: string; // Unique user identifier
   name: string; // User's display name
   email: string; // Registered email
-  bodyType: BodyType; // 'Petite' | 'Athletic' | ...
+  height: Height; // 'Petite' | 'Average' | 'Tall'
+  bodyShape: BodyShape; // 'Hourglass' | 'Pear' | 'Apple' | ...
   skinTone: SkinTone; // 'Fair' | 'Wheatish' | ...
+  undertone: Undertone; // 'Warm' | 'Cool' | 'Neutral'
   stylePreference: StylePreference; // 'Minimal' | 'Ethnic' | ...
+  coveragePreference: CoveragePreference; // 'Modest' | 'Moderate' | 'Open'
+  occasionFrequency: OccasionFrequency; // 'Mostly Casual' | ...
+  colorComfort: ColorComfort; // 'Neutrals Only' | ...
 }
 ```
 
 **Data Types:**
 
 ```typescript
-type BodyType = "Petite" | "Athletic" | "Curvy" | "Plus" | "Tall";
-type SkinTone = "Fair" | "Wheatish" | "Dusky" | "Deep";
-type StylePreference =
-  | "Minimal"
-  | "Ethnic"
-  | "Western"
-  | "Fusion"
-  | "Streetwear";
+type Height = 'Petite' | 'Average' | 'Tall';
+type BodyShape = 'Hourglass' | 'Pear' | 'Apple' | 'Rectangle' | 'Inverted Triangle';
+type SkinTone = 'Fair' | 'Wheatish' | 'Dusky' | 'Deep';
+type Undertone = 'Warm' | 'Cool' | 'Neutral';
+type StylePreference = 'Minimal' | 'Ethnic' | 'Western' | 'Fusion' | 'Streetwear';
+type CoveragePreference = 'Modest' | 'Moderate' | 'Open';
+type OccasionFrequency = 'Mostly Casual' | 'Mix of Everything' | 'Lots of Functions and Events' | 'Professional Environment Daily';
+type ColorComfort = 'Neutrals Only' | 'Some Color' | 'Bold and Colorful';
 ```
 
 **Storage**:
@@ -131,9 +136,14 @@ type StylePreference =
   "id": "user_a1b2c3d4",
   "name": "Priya Sharma",
   "email": "priya@example.com",
-  "bodyType": "Curvy",
+  "height": "Average",
+  "bodyShape": "Hourglass",
   "skinTone": "Wheatish",
-  "stylePreference": "Fusion"
+  "undertone": "Neutral",
+  "stylePreference": "Fusion",
+  "coveragePreference": "Moderate",
+  "occasionFrequency": "Mix of Everything",
+  "colorComfort": "Some Color"
 }
 ```
 
@@ -147,10 +157,18 @@ interface WardrobeItem {
   userId: string; // Owner of the item
   imageUrl: string; // File URI or cloud URL
   category: Category; // Type of clothing
-  color: string; // Single primary color
+  color: Color; // Selected from 28-color list
   style: StylePreference; // Style classification
   tags: string[]; // Custom keywords
   createdAt: string; // ISO timestamp
+  fit: Fit;
+  fabric: Fabric;
+  length: Length;
+  pattern: Pattern;
+  neckline: Neckline;
+  sleeve: Sleeve;
+  season: Season;
+  occasions: string[]; // List of suitable Indian-specific occasions
 }
 
 type Category = "Tops" | "Bottoms" | "Dresses" | "Ethnic" | "Outers" | "Shoes";
@@ -174,14 +192,22 @@ type Category = "Tops" | "Bottoms" | "Dresses" | "Ethnic" | "Outers" | "Shoes";
   "color": "White",
   "style": "Western",
   "tags": ["summer", "linen", "office"],
-  "createdAt": "2026-06-06T10:30:00Z"
+  "createdAt": "2026-06-06T10:30:00Z",
+  "fit": "Regular",
+  "fabric": "Linen",
+  "length": "Short",
+  "pattern": "Solid",
+  "neckline": "Collar",
+  "sleeve": "Half",
+  "season": "Summer",
+  "occasions": ["Casual Outing", "Brunch / Cafe"]
 }
 ```
 
 **Constraints**:
 
 - One image per item
-- Single color classification
+- Single color classification from 28 expanded colors
 - Multiple tags allowed
 - At least one tag required
 
@@ -194,12 +220,18 @@ interface Outfit {
   id: string; // Unique outfit ID
   title: string; // Outfit name
   imageUrl: string; // URL to composite/styled image
-  occasions: string[]; // Use cases (Interview, Wedding, etc.)
+  occasions: string[]; // Indian-specific occasions
   style: string; // Style category
-  bodyTypes: BodyType[]; // Recommended body types
+  heights: Height[]; // Recommended heights
+  bodyShapes: BodyShape[]; // Recommended body shapes
   skinTones: SkinTone[]; // Recommended skin tones
+  undertones?: Undertone[]; // Recommended skin undertones
   description: string; // Short description
   explanation?: string; // Why it matches user
+  formality: Formality; // 'Casual' | 'Smart Casual' | ...
+  coverage: Coverage; // 'Minimal' | 'Moderate' | ...
+  season: Season; // 'Summer' | 'Winter' | ...
+  colorPalette: string[]; // Dominant colors in the outfit
 }
 ```
 
@@ -216,12 +248,17 @@ interface Outfit {
   "id": "outfit_m1",
   "title": "Contemporary Indigo Fusion",
   "imageUrl": "https://images.unsplash.com/...",
-  "occasions": ["Office Party", "Casual Outing"],
+  "occasions": ["Diwali Party (Friends)", "Casual Outing"],
   "style": "Fusion",
-  "bodyTypes": ["Curvy", "Plus"],
+  "heights": ["Average", "Tall"],
+  "bodyShapes": ["Hourglass", "Pear"],
   "skinTones": ["Wheatish", "Dusky"],
   "description": "Blend of traditional and modern styling",
-  "explanation": "Perfect for curves and medium skin tones"
+  "explanation": "Perfect for curves and medium skin tones",
+  "formality": "Smart Casual",
+  "coverage": "Moderate",
+  "season": "All-season",
+  "colorPalette": ["Indigo", "Blue", "White"]
 }
 ```
 
@@ -283,9 +320,14 @@ CREATE TABLE user_profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id),
   name TEXT NOT NULL,
-  body_type TEXT CHECK (body_type IN ('Petite', 'Athletic', 'Curvy', 'Plus', 'Tall')),
+  height TEXT CHECK (height IN ('Petite', 'Average', 'Tall')),
+  body_shape TEXT CHECK (body_shape IN ('Hourglass', 'Pear', 'Apple', 'Rectangle', 'Inverted Triangle')),
   skin_tone TEXT CHECK (skin_tone IN ('Fair', 'Wheatish', 'Dusky', 'Deep')),
+  undertone TEXT CHECK (undertone IN ('Warm', 'Cool', 'Neutral')),
   style_preference TEXT CHECK (style_preference IN ('Minimal', 'Ethnic', 'Western', 'Fusion', 'Streetwear')),
+  coverage_preference TEXT CHECK (coverage_preference IN ('Modest', 'Moderate', 'Open')),
+  occasion_frequency TEXT CHECK (occasion_frequency IN ('Mostly Casual', 'Mix of Everything', 'Lots of Functions and Events', 'Professional Environment Daily')),
+  color_comfort TEXT CHECK (color_comfort IN ('Neutrals Only', 'Some Color', 'Bold and Colorful')),
   profile_image_url TEXT,
   bio TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -305,6 +347,14 @@ CREATE TABLE wardrobe_items (
   color TEXT NOT NULL,
   style TEXT NOT NULL,
   tags TEXT[] NOT NULL,
+  fit TEXT CHECK (fit IN ('Oversized', 'Relaxed', 'Regular', 'Slim', 'Fitted', 'Boxy')),
+  fabric TEXT CHECK (fabric IN ('Cotton', 'Silk', 'Chiffon', 'Denim', 'Linen', 'Georgette', 'Velvet', 'Polyester', 'Knit', 'Other')),
+  length TEXT CHECK (length IN ('Crop', 'Short', 'Knee-length', 'Midi', 'Maxi', 'Full', 'Not Applicable')),
+  pattern TEXT CHECK (pattern IN ('Solid', 'Stripes', 'Floral', 'Geometric', 'Checks', 'Embroidered', 'Printed', 'Abstract')),
+  neckline TEXT CHECK (neckline IN ('Round', 'V-neck', 'Boat', 'Collar', 'Off-shoulder', 'Halter', 'High-neck', 'Not Applicable')),
+  sleeve TEXT CHECK (sleeve IN ('Sleeveless', 'Half', '3/4', 'Full', 'Not Applicable')),
+  season TEXT CHECK (season IN ('Summer', 'Winter', 'Monsoon', 'All-season')),
+  occasions TEXT[] NOT NULL,
   wear_count INTEGER DEFAULT 0,
   is_favorite BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -326,8 +376,14 @@ CREATE TABLE outfits (
   image_url TEXT NOT NULL,
   occasions TEXT[] NOT NULL,
   style TEXT NOT NULL,
-  body_types TEXT[] NOT NULL,
+  heights TEXT[] NOT NULL,
+  body_shapes TEXT[] NOT NULL,
   skin_tones TEXT[] NOT NULL,
+  undertones TEXT[],
+  formality TEXT CHECK (formality IN ('Casual', 'Smart Casual', 'Semi-formal', 'Formal', 'Festive', 'Party')),
+  coverage TEXT CHECK (coverage IN ('Minimal', 'Moderate', 'Conservative')),
+  season TEXT CHECK (season IN ('Summer', 'Winter', 'Monsoon', 'All-season')),
+  color_palette TEXT[] NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

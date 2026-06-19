@@ -181,9 +181,14 @@ User sees item in grid
   id: "user_abc",
   name: "Priya",
   email: "priya@example.com",
-  bodyType: "Curvy",        // Petite/Athletic/Curvy/Plus/Tall
-  skinTone: "Wheatish",     // Fair/Wheatish/Dusky/Deep
-  stylePreference: "Fusion" // Minimal/Ethnic/Western/Fusion/Streetwear
+  height: "Average",               // Petite/Average/Tall
+  bodyShape: "Hourglass",          // Hourglass/Pear/Apple/Rectangle/Inverted Triangle
+  skinTone: "Wheatish",            // Fair/Wheatish/Dusky/Deep
+  undertone: "Neutral",            // Warm/Cool/Neutral
+  stylePreference: "Fusion",       // Minimal/Ethnic/Western/Fusion/Streetwear
+  coveragePreference: "Moderate",  // Modest/Moderate/Open
+  occasionFrequency: "Mix of Everything", // Mostly Casual/Mix of Everything/Lots of Functions and Events/Professional Environment Daily
+  colorComfort: "Some Color"       // Neutrals Only/Some Color/Bold and Colorful
 }
 ```
 
@@ -198,7 +203,15 @@ User sees item in grid
   color: "Blue",
   style: "Western",
   tags: ["summer", "casual", "linen"],
-  createdAt: "2026-06-06T..."
+  createdAt: "2026-06-06T...",
+  fit: "Regular",
+  fabric: "Linen",
+  length: "Short",
+  pattern: "Solid",
+  neckline: "Collar",
+  sleeve: "Half",
+  season: "Summer",
+  occasions: ["Casual Outing", "Brunch / Cafe"]
 }
 ```
 

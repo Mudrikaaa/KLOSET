@@ -1,56 +1,71 @@
-import React, { useState } from 'react';
-import { StyleSheet, Image, TouchableOpacity, Dimensions, Animated, PanResponder } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Image, TouchableOpacity, Dimensions, Animated, ActivityIndicator, ScrollView } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { Heart, X, Sparkles, RefreshCw, Info } from 'lucide-react-native';
+import { Outfit } from '@/types';
+import { api } from '../../lib';
+import { useAppStore } from '../../store';
 
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width - 32;
-const CARD_HEIGHT = height * 0.55;
+const CARD_HEIGHT = height * 0.58;
 
-const MOCK_OUTFITS = [
-  {
-    id: 'o1',
-    title: 'Contemporary Indigo fusion',
-    style: 'Fusion Wear',
-    image: 'https://images.unsplash.com/photo-1595959183075-c1d09e519826?w=600&auto=format&fit=crop&q=80',
-    occasion: ['Office Party', 'Casual Outing'],
-    explanation: 'A blend of traditional block print kurta paired with classic denim. Perfect for wheatish skin tones.',
-  },
-  {
-    id: 'o2',
-    title: 'Sleek Corporate Power Suit',
-    style: 'Western Formal',
-    image: 'https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?w=600&auto=format&fit=crop&q=80',
-    occasion: ['Interview', 'Office'],
-    explanation: 'Well-tailored grey blazer matching slate trousers. Exudes confidence and structure.',
-  },
-  {
-    id: 'o3',
-    title: 'Royal Ivory Sherwani Set',
-    style: 'Indian Traditional',
-    image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=600&auto=format&fit=crop&q=80',
-    occasion: ['Wedding', 'Family Function'],
-    explanation: 'Rich silk handloom sherwani with gold accents. Extremely premium look for festive events.',
-  },
+const OCCASIONS = [
+  'Casual Outing',
+  'Brunch / Cafe',
+  'Dinner Date',
+  'Office (Startup)',
+  'Wedding (Close Family)',
+  'Diwali Party (Family)'
 ];
 
 export default function DiscoverScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme];
+  const [outfits, setOutfits] = useState<Outfit[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [likesCount, setLikesCount] = useState(0);
   const [dislikesCount, setDislikesCount] = useState(0);
+  const [activeOccasion, setActiveOccasion] = useState('Casual Outing');
 
-  // Simple state animation triggers for visual swipe effect
+  const fetchCatalog = (occasionName: string) => {
+    setLoading(true);
+    setError(null);
+    api.getSuggestions(occasionName)
+      .then((data) => {
+        setOutfits(data || []);
+        setCurrentIndex(0);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('[KLOSET-DEBUG] [DiscoverScreen] Failed to fetch outfits:', err);
+        setError(err.message || 'Failed to fetch outfits');
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchCatalog(activeOccasion);
+  }, [activeOccasion]);
+
   const handleAction = (type: 'like' | 'dislike') => {
-    if (currentIndex < MOCK_OUTFITS.length) {
+    if (currentIndex < outfits.length) {
+      const currentOutfit = outfits[currentIndex];
       if (type === 'like') {
         setLikesCount(prev => prev + 1);
       } else {
         setDislikesCount(prev => prev + 1);
       }
+      
+      useAppStore.getState().recordSwipe(currentOutfit.id, type)
+        .catch((err) => {
+          console.warn('[KLOSET-DEBUG] [DiscoverScreen] Failed to record swipe:', err);
+        });
+
       setCurrentIndex(prev => prev + 1);
     }
   };
@@ -59,8 +74,35 @@ export default function DiscoverScreen() {
     setCurrentIndex(0);
   };
 
-  const hasCards = currentIndex < MOCK_OUTFITS.length;
-  const currentOutfit = hasCards ? MOCK_OUTFITS[currentIndex] : null;
+  const hasCards = currentIndex < outfits.length;
+  const currentOutfit = hasCards ? outfits[currentIndex] : null;
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.center, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.tint} />
+        <Text style={[styles.loadingText, { color: theme.tabIconDefault, marginTop: 12 }]}>
+          Loading catalog outfits...
+        </Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, styles.center, { backgroundColor: theme.background }]}>
+        <X size={48} color="#EF4444" style={{ marginBottom: 16 }} />
+        <Text style={[styles.errorTitle, { color: theme.text }]}>Oops!</Text>
+        <Text style={[styles.errorText, { color: theme.tabIconDefault }]}>{error}</Text>
+        <TouchableOpacity 
+          onPress={() => fetchCatalog(activeOccasion)}
+          style={[styles.retryButton, { backgroundColor: theme.tint, marginTop: 16 }]}
+        >
+          <Text style={styles.retryText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -78,12 +120,59 @@ export default function DiscoverScreen() {
           </View>
         </View>
       </View>
+      
+      {/* Occasion Chips Filter */}
+      <View style={styles.occasionsWrapper}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          style={styles.occasionsContainer}
+          contentContainerStyle={styles.occasionsContent}
+        >
+          {OCCASIONS.map((occ) => {
+            const isActive = activeOccasion === occ;
+            return (
+              <TouchableOpacity
+                key={occ}
+                onPress={() => setActiveOccasion(occ)}
+                style={[
+                  styles.chip,
+                  isActive 
+                    ? { backgroundColor: theme.tint, borderColor: theme.tint }
+                    : { backgroundColor: theme.card, borderColor: theme.border }
+                ]}
+                activeOpacity={0.7}
+              >
+                <Text 
+                  style={[
+                    styles.chipText,
+                    isActive 
+                      ? { color: '#FFFFFF', fontWeight: '700' }
+                      : { color: theme.tabIconDefault, fontWeight: '500' }
+                  ]}
+                >
+                  {occ}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
 
       {/* Card area */}
       <View style={styles.cardContainer}>
         {hasCards && currentOutfit ? (
           <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <Image source={{ uri: currentOutfit.image }} style={styles.cardImage} />
+            <Image source={{ uri: currentOutfit.imageUrl }} style={styles.cardImage} />
+            
+            {currentOutfit.matchScore !== undefined && (
+              <View style={[styles.matchBadge, { backgroundColor: 'rgba(15, 23, 42, 0.85)' }]}>
+                <Sparkles size={12} color="#FBBF24" style={{ marginRight: 4 }} />
+                <Text style={styles.matchBadgeText}>
+                  {Math.round((currentOutfit.matchScore / 9) * 100)}% Match
+                </Text>
+              </View>
+            )}
             
             {/* Info overlay */}
             <View style={styles.overlayContent}>
@@ -91,7 +180,7 @@ export default function DiscoverScreen() {
                 <View style={[styles.styleTag, { backgroundColor: theme.tint }]}>
                   <Text style={styles.tagText}>{currentOutfit.style}</Text>
                 </View>
-                {currentOutfit.occasion.map((occ, idx) => (
+                {currentOutfit.occasions.slice(0, 2).map((occ, idx) => (
                   <View key={idx} style={[styles.occTag, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
                     <Text style={styles.occText}>{occ}</Text>
                   </View>
@@ -100,12 +189,30 @@ export default function DiscoverScreen() {
               
               <Text style={styles.cardTitle}>{currentOutfit.title}</Text>
               
-              <View style={styles.explanationBox}>
-                <Sparkles size={16} color={theme.accent} style={{ marginRight: 6 }} />
-                <Text style={styles.explanationText} numberOfLines={2}>
-                  {currentOutfit.explanation}
+              {/* Extra details row */}
+              <View style={styles.detailsRow}>
+                <Text style={styles.detailsText}>
+                  {currentOutfit.formality} • {currentOutfit.coverage} • {currentOutfit.season}
+                </Text>
+                <Text style={styles.paletteText}>
+                  Palette: {currentOutfit.colorPalette.join(', ')}
                 </Text>
               </View>
+
+              {currentOutfit.description && (
+                <Text style={styles.descriptionText}>
+                  {currentOutfit.description}
+                </Text>
+              )}
+
+              {currentOutfit.explanation && (
+                <View style={styles.explanationBox}>
+                  <Sparkles size={16} color={theme.accent} style={{ marginRight: 6, marginTop: 2 }} />
+                  <Text style={styles.explanationText} numberOfLines={3}>
+                    {currentOutfit.explanation}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
         ) : (
@@ -220,7 +327,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: 20,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)', // Sleek backdrop for readability
+    backgroundColor: 'rgba(15, 23, 42, 0.75)', // Slightly higher opacity for extra readability of multi-line texts
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
   },
@@ -255,14 +362,31 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '800',
     color: '#FFFFFF',
+    marginBottom: 6,
+  },
+  detailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
     marginBottom: 8,
+    backgroundColor: 'transparent',
+  },
+  detailsText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#CBD5E1',
+  },
+  paletteText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#94A3B8',
   },
   explanationBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     backgroundColor: 'rgba(255, 255, 255, 0.12)',
     borderRadius: 12,
-    padding: 8,
+    padding: 10,
     marginTop: 4,
   },
   explanationText: {
@@ -270,6 +394,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#F1F5F9',
     lineHeight: 16,
+  },
+  descriptionText: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#E2E8F0',
+    marginBottom: 6,
   },
   emptyCard: {
     width: CARD_WIDTH,
@@ -334,5 +464,74 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
+  },
+  center: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  errorText: {
+    fontSize: 14,
+    textAlign: 'center',
+    paddingHorizontal: 32,
+    marginBottom: 16,
+  },
+  retryButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  retryText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  occasionsWrapper: {
+    marginBottom: 12,
+    backgroundColor: 'transparent',
+  },
+  occasionsContainer: {
+    maxHeight: 44,
+    backgroundColor: 'transparent',
+  },
+  occasionsContent: {
+    paddingHorizontal: 4,
+    gap: 8,
+    alignItems: 'center',
+  },
+  chip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  chipText: {
+    fontSize: 13,
+  },
+  matchBadge: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    zIndex: 10,
+  },
+  matchBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

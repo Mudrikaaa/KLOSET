@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 
 import { useAppStore } from '../store';
+import { api } from '../lib';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -47,6 +48,58 @@ function RootLayoutNav() {
   const segments = useSegments();
   const isAuthenticated = useAppStore((state) => state.isAuthenticated);
   const hasSeenOnboarding = useAppStore((state) => state.hasSeenOnboarding);
+  const hasHydrated = useAppStore((state) => state.hasHydrated);
+
+  // Background synchronization effect — only runs once rehydration is complete
+  // AND the user is authenticated. hasHydrated ensures the JWT token is available
+  // in lib/api.ts before any network requests are attempted.
+  useEffect(() => {
+    const token = useAppStore.getState().token;
+    console.log('[KLOSET-DEBUG] [LayoutNav] Sync useEffect triggered:', {
+      hasHydrated,
+      isAuthenticated,
+      tokenExists: !!token,
+    });
+    if (!hasHydrated || !isAuthenticated || !token) {
+      console.log('[KLOSET-DEBUG] [LayoutNav] Sync effect skipped. hasHydrated:', hasHydrated, 'isAuthenticated:', isAuthenticated, 'tokenExists:', !!token);
+      return;
+    }
+
+    const profile = useAppStore.getState().profile;
+    console.log('[KLOSET-DEBUG] [LayoutNav] Sync starting. profileExists:', !!profile, 'profileId:', profile?.id);
+    
+    if (profile && profile.id !== 'guest_user') {
+      // Sync profile
+      api.getProfile()
+        .then((updatedProfile) => {
+          console.log('[KLOSET-DEBUG] [LayoutNav] Profile sync completed successfully.');
+          if (updatedProfile) {
+            useAppStore.setState({ profile: updatedProfile });
+          }
+        })
+        .catch((err) => console.warn('[KLOSET-DEBUG] Background profile sync failed:', err));
+
+      // Sync wardrobe items
+      api.fetchWardrobeItems()
+        .then((items) => {
+          console.log('[KLOSET-DEBUG] [LayoutNav] Wardrobe sync completed successfully.');
+          if (items) {
+            useAppStore.setState({ wardrobeItems: items });
+          }
+        })
+        .catch((err) => console.warn('[KLOSET-DEBUG] Background wardrobe sync failed:', err));
+
+      // Sync swipe history
+      useAppStore.getState().fetchSwipeHistory()
+        .then(() => {
+          console.log('[KLOSET-DEBUG] [LayoutNav] Swipe history sync completed successfully.');
+        })
+        .catch((err) => console.warn('[KLOSET-DEBUG] Background swipe history sync failed:', err));
+    } else {
+      console.log('[KLOSET-DEBUG] [LayoutNav] Sync skipped: guest user or no profile.');
+    }
+  }, [hasHydrated, isAuthenticated]);
+
 
   useEffect(() => {
     const inAuthGroup = segments[0] === 'auth';
@@ -81,3 +134,4 @@ function RootLayoutNav() {
     </Stack>
   );
 }
+

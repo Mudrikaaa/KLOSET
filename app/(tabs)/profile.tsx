@@ -1,15 +1,25 @@
 import React from 'react';
-import { StyleSheet, ScrollView, TouchableOpacity, View as RNView } from 'react-native';
+import { StyleSheet, ScrollView, TouchableOpacity, View as RNView, Image } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
-import { User, Shield, Info, LogOut, Check } from 'lucide-react-native';
+import { User, Shield, Info, LogOut, Check, Heart } from 'lucide-react-native';
 import { useAppStore } from '../../store';
-import { BodyType, SkinTone, StylePreference } from '../../types';
+import { 
+  Height, BodyShape, SkinTone, Undertone, StylePreference, 
+  CoveragePreference, OccasionFrequency, ColorComfort 
+} from '../../types';
 
-const BODY_TYPES: BodyType[] = ['Petite', 'Athletic', 'Curvy', 'Plus', 'Tall'];
+const HEIGHTS: Height[] = ['Petite', 'Average', 'Tall'];
+const BODY_SHAPES: BodyShape[] = ['Hourglass', 'Pear', 'Apple', 'Rectangle', 'Inverted Triangle'];
 const SKIN_TONES: SkinTone[] = ['Fair', 'Wheatish', 'Dusky', 'Deep'];
+const UNDERTONES: Undertone[] = ['Warm', 'Cool', 'Neutral'];
 const STYLES: StylePreference[] = ['Minimal', 'Ethnic', 'Western', 'Fusion', 'Streetwear'];
+const COVERAGE_PREFERENCES: CoveragePreference[] = ['Modest', 'Moderate', 'Open'];
+const OCCASION_FREQUENCIES: OccasionFrequency[] = [
+  'Mostly Casual', 'Mix of Everything', 'Lots of Functions and Events', 'Professional Environment Daily'
+];
+const COLOR_COMFORTS: ColorComfort[] = ['Neutrals Only', 'Some Color', 'Bold and Colorful'];
 
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();
@@ -19,18 +29,30 @@ export default function ProfileScreen() {
   const profile = useAppStore((state) => state.profile);
   const saveProfile = useAppStore((state) => state.saveProfile);
   const signOut = useAppStore((state) => state.signOut);
+  const swipeHistory = useAppStore((state) => state.swipeHistory);
+  const likedOutfits = swipeHistory.filter((item) => item.direction === 'like');
 
   const name = profile?.name || 'Priya Sharma';
   const email = profile?.email || 'priya.sharma@example.com';
-  const bodyType = profile?.bodyType || 'Curvy';
+  const height = profile?.height || 'Average';
+  const bodyShape = profile?.bodyShape || 'Hourglass';
   const skinTone = profile?.skinTone || 'Wheatish';
+  const undertone = profile?.undertone || 'Neutral';
   const stylePref = profile?.stylePreference || 'Fusion';
+  const coveragePref = profile?.coveragePreference || 'Moderate';
+  const occasionFreq = profile?.occasionFrequency || 'Mix of Everything';
+  const colorComfort = profile?.colorComfort || 'Some Color';
 
-  const handleUpdateProfile = (key: 'bodyType' | 'skinTone' | 'stylePref', value: any) => {
+  const handleUpdateProfile = (key: string, value: any) => {
     saveProfile({
-      bodyType: key === 'bodyType' ? value : bodyType,
+      height: key === 'height' ? value : height,
+      bodyShape: key === 'bodyShape' ? value : bodyShape,
       skinTone: key === 'skinTone' ? value : skinTone,
+      undertone: key === 'undertone' ? value : undertone,
       stylePreference: key === 'stylePref' ? value : stylePref,
+      coveragePreference: key === 'coveragePref' ? value : coveragePref,
+      occasionFrequency: key === 'occasionFreq' ? value : occasionFreq,
+      colorComfort: key === 'colorComfort' ? value : colorComfort,
     });
   };
 
@@ -45,20 +67,19 @@ export default function ProfileScreen() {
         <Text style={[styles.emailText, { color: theme.tabIconDefault }]}>{email}</Text>
       </View>
 
-
       {/* Style Profile Settings */}
       <Text style={[styles.sectionTitle, { color: theme.text }]}>Style Personalization</Text>
       
-      {/* Body Type Selection */}
+      {/* Height Selection */}
       <View style={[styles.profileSection, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <Text style={[styles.settingLabel, { color: theme.text }]}>Body Type</Text>
+        <Text style={[styles.settingLabel, { color: theme.text }]}>Height</Text>
         <RNView style={styles.chipRow}>
-          {BODY_TYPES.map((type) => {
-            const isSelected = bodyType === type;
+          {HEIGHTS.map((h) => {
+            const isSelected = height === h;
             return (
               <TouchableOpacity
-                key={type}
-                onPress={() => handleUpdateProfile('bodyType', type)}
+                key={h}
+                onPress={() => handleUpdateProfile('height', h)}
                 style={[
                   styles.optionChip,
                   {
@@ -69,7 +90,35 @@ export default function ProfileScreen() {
               >
                 {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
                 <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
-                  {type}
+                  {h}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </RNView>
+      </View>
+
+      {/* Body Shape Selection */}
+      <View style={[styles.profileSection, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        <Text style={[styles.settingLabel, { color: theme.text }]}>Body Shape</Text>
+        <RNView style={styles.chipRow}>
+          {BODY_SHAPES.map((shape) => {
+            const isSelected = bodyShape === shape;
+            return (
+              <TouchableOpacity
+                key={shape}
+                onPress={() => handleUpdateProfile('bodyShape', shape)}
+                style={[
+                  styles.optionChip,
+                  {
+                    backgroundColor: isSelected ? theme.tint : 'transparent',
+                    borderColor: isSelected ? theme.tint : theme.border,
+                  }
+                ]}
+              >
+                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
+                <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
+                  {shape}
                 </Text>
               </TouchableOpacity>
             );
@@ -105,6 +154,34 @@ export default function ProfileScreen() {
         </RNView>
       </View>
 
+      {/* Undertone Selection */}
+      <View style={[styles.profileSection, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        <Text style={[styles.settingLabel, { color: theme.text }]}>Skin Undertone</Text>
+        <RNView style={styles.chipRow}>
+          {UNDERTONES.map((u) => {
+            const isSelected = undertone === u;
+            return (
+              <TouchableOpacity
+                key={u}
+                onPress={() => handleUpdateProfile('undertone', u)}
+                style={[
+                  styles.optionChip,
+                  {
+                    backgroundColor: isSelected ? theme.tint : 'transparent',
+                    borderColor: isSelected ? theme.tint : theme.border,
+                  }
+                ]}
+              >
+                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
+                <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
+                  {u}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </RNView>
+      </View>
+
       {/* Style Preference Selection */}
       <View style={[styles.profileSection, { backgroundColor: theme.card, borderColor: theme.border }]}>
         <Text style={[styles.settingLabel, { color: theme.text }]}>Primary Style</Text>
@@ -132,6 +209,125 @@ export default function ProfileScreen() {
           })}
         </RNView>
       </View>
+
+      {/* Coverage Preference Selection */}
+      <View style={[styles.profileSection, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        <Text style={[styles.settingLabel, { color: theme.text }]}>Coverage Preference</Text>
+        <RNView style={styles.chipRow}>
+          {COVERAGE_PREFERENCES.map((c) => {
+            const isSelected = coveragePref === c;
+            return (
+              <TouchableOpacity
+                key={c}
+                onPress={() => handleUpdateProfile('coveragePref', c)}
+                style={[
+                  styles.optionChip,
+                  {
+                    backgroundColor: isSelected ? theme.tint : 'transparent',
+                    borderColor: isSelected ? theme.tint : theme.border,
+                  }
+                ]}
+              >
+                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
+                <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
+                  {c}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </RNView>
+      </View>
+
+      {/* Occasion Frequency Selection */}
+      <View style={[styles.profileSection, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        <Text style={[styles.settingLabel, { color: theme.text }]}>Occasion Frequency</Text>
+        <RNView style={styles.chipRow}>
+          {OCCASION_FREQUENCIES.map((occ) => {
+            const isSelected = occasionFreq === occ;
+            return (
+              <TouchableOpacity
+                key={occ}
+                onPress={() => handleUpdateProfile('occasionFreq', occ)}
+                style={[
+                  styles.optionChip,
+                  {
+                    backgroundColor: isSelected ? theme.tint : 'transparent',
+                    borderColor: isSelected ? theme.tint : theme.border,
+                  }
+                ]}
+              >
+                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
+                <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
+                  {occ}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </RNView>
+      </View>
+
+      {/* Color Comfort Selection */}
+      <View style={[styles.profileSection, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        <Text style={[styles.settingLabel, { color: theme.text }]}>Color Comfort</Text>
+        <RNView style={styles.chipRow}>
+          {COLOR_COMFORTS.map((col) => {
+            const isSelected = colorComfort === col;
+            return (
+              <TouchableOpacity
+                key={col}
+                onPress={() => handleUpdateProfile('colorComfort', col)}
+                style={[
+                  styles.optionChip,
+                  {
+                    backgroundColor: isSelected ? theme.tint : 'transparent',
+                    borderColor: isSelected ? theme.tint : theme.border,
+                  }
+                ]}
+              >
+                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
+                <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
+                  {col}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </RNView>
+      </View>
+
+      {/* Liked Looks Section */}
+      <Text style={[styles.sectionTitle, { color: theme.text }]}>Liked Looks</Text>
+      {likedOutfits.length > 0 ? (
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          contentContainerStyle={styles.likedOutfitsScroll}
+          style={styles.likedOutfitsContainer}
+        >
+          {likedOutfits.map((item) => (
+            <RNView 
+              key={item.id} 
+              style={[styles.likedCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+            >
+              <Image source={{ uri: item.outfit.imageUrl }} style={styles.likedImage} />
+              <RNView style={styles.likedInfo}>
+                <Text style={[styles.likedTitle, { color: theme.text }]} numberOfLines={1}>
+                  {item.outfit.title}
+                </Text>
+                <Text style={[styles.likedStyle, { color: theme.tint }]}>
+                  {item.outfit.style}
+                </Text>
+              </RNView>
+            </RNView>
+          ))}
+        </ScrollView>
+      ) : (
+        <View style={[styles.profileSection, styles.emptyHistoryBox, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <Heart size={24} color={theme.tabIconDefault} style={{ marginBottom: 8 }} />
+          <Text style={[styles.emptyHistoryText, { color: theme.tabIconDefault }]}>
+            Outfits you like in Discover will show up here!
+          </Text>
+        </View>
+      )}
 
       {/* General Settings List */}
       <Text style={[styles.sectionTitle, { color: theme.text }]}>Account</Text>
@@ -228,5 +424,46 @@ const styles = StyleSheet.create({
   listItemText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  likedOutfitsScroll: {
+    gap: 12,
+    paddingRight: 16,
+  },
+  likedOutfitsContainer: {
+    marginBottom: 20,
+  },
+  likedCard: {
+    width: 140,
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  likedImage: {
+    width: '100%',
+    height: 120,
+    resizeMode: 'cover',
+  },
+  likedInfo: {
+    padding: 8,
+    backgroundColor: 'transparent',
+  },
+  likedTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  likedStyle: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  emptyHistoryBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 24,
+  },
+  emptyHistoryText: {
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
