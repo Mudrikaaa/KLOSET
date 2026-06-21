@@ -19,16 +19,7 @@ interface AppState {
   swipeHistory: SwipeHistoryItem[];
   login: (email: string, password?: string) => Promise<void>;
   signup: (email: string, password?: string, name?: string) => Promise<void>;
-  saveProfile: (profileData: { 
-    height: Height;
-    bodyShape: BodyShape;
-    skinTone: SkinTone;
-    undertone: Undertone;
-    stylePreference: StylePreference;
-    coveragePreference: CoveragePreference;
-    occasionFrequency: OccasionFrequency;
-    colorComfort: ColorComfort;
-  }) => Promise<void>;
+  saveProfile: (profileData: Partial<UserStyleProfile>) => Promise<void>;
   addWardrobeItem: (item: Omit<WardrobeItem, 'id' | 'userId' | 'createdAt'>) => Promise<void>;
   recordSwipe: (outfitId: string, direction: 'like' | 'dislike') => Promise<void>;
   fetchSwipeHistory: () => Promise<void>;
@@ -222,6 +213,16 @@ export const useAppStore = create<AppState>()(
               coveragePreference: 'Moderate',
               occasionFrequency: 'Mix of Everything',
               colorComfort: 'Some Color',
+              ageRange: '22-27',
+              topSize: 'M',
+              bottomSize: '30',
+              braSize: '32C',
+              shoeSize: '6',
+              comfortZones: ['None'],
+              city: 'Mumbai',
+              budgetTier: 'Mid-range',
+              jewelryTypes: ['Earrings', 'Watch'],
+              avoidList: [],
             },
             hasSeenOnboarding: true,
           });

@@ -13,12 +13,27 @@ const CARD_WIDTH = width - 32;
 const CARD_HEIGHT = height * 0.58;
 
 const OCCASIONS = [
-  'Casual Outing',
-  'Brunch / Cafe',
-  'Dinner Date',
-  'Office (Startup)',
-  'Wedding (Close Family)',
-  'Diwali Party (Family)'
+  // Festive & Family
+  'Diwali Party (Family)', 'Diwali Party (Friends)', 'Holi', 'Navratri / Garba', 'Eid', 'Regional Festival',
+  'Pooja / Temple Visit', 'Baby Shower / Godh Bharai',
+
+  // Weddings
+  'Mehendi Function', 'Sangeet Night', 'Wedding (Close Family)', 'Wedding (Guest)', 'Reception', 'Cocktail / Pre-wedding',
+  'Engagement Ceremony', 'Roka / Sagai',
+
+  // College
+  'First Day of College', 'College Farewell', 'College Fest (Day)', 'College Fest (Night)', 'College Trip', 'Internship (Startup)', 'Internship (Corporate)',
+
+  // Professional
+  'Job Interview (Tech)', 'Job Interview (Corporate)', 'Office (Startup)', 'Office (Formal)', 'Client Meeting', 'WFH / Video Call',
+
+  // Social
+  'Casual Outing', 'Mall / Shopping Day', 'Brunch / Cafe', 'Dinner Date', 'First Date', 'Night Out', 'House Party',
+  'Gym / Workout', 'Beach / Pool Day',
+
+  // Special
+  'My Birthday', "Friend's Birthday", 'Travel Day', 'Airport / Travel Look', 'Hill Station Trip', 'Heritage City Sightseeing',
+  'Graduation Day', 'Award Ceremony / Convocation', 'Anniversary Dinner'
 ];
 
 export default function DiscoverScreen() {

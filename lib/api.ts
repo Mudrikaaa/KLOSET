@@ -75,7 +75,7 @@ const mapWardrobeItem = (item: any): WardrobeItem => {
     userId: item.user_id,
     imageUrl: item.image_url,
     category: item.category as Category,
-    color: item.color as Color,
+    colors: item.colors && item.colors.length > 0 ? item.colors : (item.color ? [item.color] : []),
     style: item.style as StylePreference,
     tags: item.tags || [],
     createdAt: item.created_at,
@@ -87,6 +87,11 @@ const mapWardrobeItem = (item: any): WardrobeItem => {
     sleeve: item.sleeve as Sleeve,
     season: item.season as Season,
     occasions: item.occasions || [],
+    subType: item.sub_type as GarmentSubType,
+    waistPosition: item.waist_position as WaistPosition,
+    structure: item.structure as Structure,
+    embellishment: item.embellishment as Embellishment,
+    opacity: item.opacity as Opacity,
   };
 };
 
@@ -219,7 +224,8 @@ export const api = {
     } as any);
 
     formData.append('category', item.category);
-    formData.append('color', item.color);
+    formData.append('colors', JSON.stringify(item.colors || []));
+    formData.append('color', item.colors && item.colors.length > 0 ? item.colors[0] : 'White');
     formData.append('style', item.style);
     if (item.fit) formData.append('fit', item.fit);
     if (item.fabric) formData.append('fabric', item.fabric);
@@ -228,6 +234,13 @@ export const api = {
     if (item.neckline) formData.append('neckline', item.neckline);
     if (item.sleeve) formData.append('sleeve', item.sleeve);
     if (item.season) formData.append('season', item.season);
+    
+    // NEW optional fields
+    if (item.subType) formData.append('subType', item.subType);
+    if (item.waistPosition) formData.append('waistPosition', item.waistPosition);
+    if (item.structure) formData.append('structure', item.structure);
+    if (item.embellishment) formData.append('embellishment', item.embellishment);
+    if (item.opacity) formData.append('opacity', item.opacity);
     
     formData.append('occasions', JSON.stringify(item.occasions || []));
     formData.append('tags', JSON.stringify(item.tags || []));

@@ -57,7 +57,7 @@ exports.signup = async (req, res, next) => {
         color_comfort
       ) 
       VALUES ($1, $2, $3, 'Average', 'Hourglass', 'Wheatish', 'Neutral', 'Fusion', 'Moderate', 'Mix of Everything', 'Some Color') 
-      RETURNING id, email, name, height, body_shape, skin_tone, undertone, style_pref, coverage_preference, occasion_frequency, color_comfort, created_at;
+      RETURNING id, email, name, height, body_shape, skin_tone, undertone, style_pref, coverage_preference, occasion_frequency, color_comfort, created_at, age_range, top_size, bottom_size, bra_size, shoe_size, comfort_zones, city, budget_tier, jewelry_types, avoid_list;
     `;
 
     const result = await db.query(insertQuery, [normalizedEmail, passwordHash, name]);
@@ -84,7 +84,17 @@ exports.signup = async (req, res, next) => {
         coveragePreference: newUser.coverage_preference,
         occasionFrequency: newUser.occasion_frequency,
         colorComfort: newUser.color_comfort,
-        createdAt: newUser.created_at
+        createdAt: newUser.created_at,
+        ageRange: newUser.age_range,
+        topSize: newUser.top_size,
+        bottomSize: newUser.bottom_size,
+        braSize: newUser.bra_size,
+        shoeSize: newUser.shoe_size,
+        comfortZones: newUser.comfort_zones || [],
+        city: newUser.city,
+        budgetTier: newUser.budget_tier,
+        jewelryTypes: newUser.jewelry_types || [],
+        avoidList: newUser.avoid_list || []
       },
       token
     });
@@ -146,7 +156,17 @@ exports.login = async (req, res, next) => {
         coveragePreference: user.coverage_preference,
         occasionFrequency: user.occasion_frequency,
         colorComfort: user.color_comfort,
-        createdAt: user.created_at
+        createdAt: user.created_at,
+        ageRange: user.age_range,
+        topSize: user.top_size,
+        bottomSize: user.bottom_size,
+        braSize: user.bra_size,
+        shoeSize: user.shoe_size,
+        comfortZones: user.comfort_zones || [],
+        city: user.city,
+        budgetTier: user.budget_tier,
+        jewelryTypes: user.jewelry_types || [],
+        avoidList: user.avoid_list || []
       },
       token
     });

@@ -1,13 +1,16 @@
-import React from 'react';
-import { StyleSheet, ScrollView, TouchableOpacity, View as RNView, Image } from 'react-native';
-import { Text, View } from '@/components/Themed';
+import React, { useState } from 'react';
+import { StyleSheet, ScrollView, TouchableOpacity, View as RNView, Image, TextInput } from 'react-native';
+import { Text, View, useThemeColor } from '@/components/Themed';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
-import { User, Shield, Info, LogOut, Check, Heart } from 'lucide-react-native';
+import { User, Shield, Info, LogOut, Check, Heart, ChevronDown, ChevronUp } from 'lucide-react-native';
 import { useAppStore } from '../../store';
+import StyledDropdown from '@/components/StyledDropdown';
 import { 
   Height, BodyShape, SkinTone, Undertone, StylePreference, 
-  CoveragePreference, OccasionFrequency, ColorComfort 
+  CoveragePreference, OccasionFrequency, ColorComfort,
+  AgeRange, TopSize, BottomSize, BraSize, ShoeSize, ComfortZone,
+  City, BudgetTier, JewelryType, UserStyleProfile
 } from '../../types';
 
 const HEIGHTS: Height[] = ['Petite', 'Average', 'Tall'];
@@ -21,6 +24,26 @@ const OCCASION_FREQUENCIES: OccasionFrequency[] = [
 ];
 const COLOR_COMFORTS: ColorComfort[] = ['Neutrals Only', 'Some Color', 'Bold and Colorful'];
 
+const TOP_SIZES: TopSize[] = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
+const BOTTOM_SIZES: BottomSize[] = ['24', '26', '28', '30', '32', '34', '36', '38', '40'];
+const BRA_SIZES: BraSize[] = [
+  '28B', '28C', '28D', '30B', '30C', '30D', '30DD', '32B', '32C', '32D', '32DD',
+  '34B', '34C', '34D', '34DD', '36B', '36C', '36D', '36DD', '38C', '38D', '38DD', '40C', '40D', '40DD'
+];
+const SHOE_SIZES: ShoeSize[] = ['3', '4', '5', '6', '7', '8', '9', '10', '11'];
+const COMFORT_ZONES: ComfortZone[] = ['Arms', 'Midsection', 'Thighs', 'Hips', 'None'];
+const JEWELRY_TYPES: JewelryType[] = [
+  'Earrings', 'Necklace / Chain', 'Bangles / Bracelets', 'Rings',
+  'Anklets', 'Maang Tikka', 'Nose Pin / Nath', 'Brooch',
+  'Watch', 'Waist Chain / Kamarband', 'None'
+];
+const CITIES: City[] = [
+  'Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Kolkata',
+  'Hyderabad', 'Pune', 'Jaipur', 'Ahmedabad', 'Lucknow',
+  'Chandigarh', 'Goa', 'Other'
+];
+const BUDGET_TIERS: BudgetTier[] = ['Budget-friendly', 'Mid-range', 'Premium', 'Luxury'];
+
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme];
@@ -32,28 +55,72 @@ export default function ProfileScreen() {
   const swipeHistory = useAppStore((state) => state.swipeHistory);
   const likedOutfits = swipeHistory.filter((item) => item.direction === 'like');
 
+  const [sections, setSections] = useState({
+    body: true,
+    color: false,
+    style: false,
+    location: false,
+    avoid: false,
+  });
+
+  const [avoidInput, setAvoidInput] = useState('');
+
+  const toggleSection = (sectionKey: keyof typeof sections) => {
+    setSections({
+      ...sections,
+      [sectionKey]: !sections[sectionKey],
+    });
+  };
+
   const name = profile?.name || 'Priya Sharma';
   const email = profile?.email || 'priya.sharma@example.com';
-  const height = profile?.height || 'Average';
-  const bodyShape = profile?.bodyShape || 'Hourglass';
-  const skinTone = profile?.skinTone || 'Wheatish';
-  const undertone = profile?.undertone || 'Neutral';
-  const stylePref = profile?.stylePreference || 'Fusion';
-  const coveragePref = profile?.coveragePreference || 'Moderate';
-  const occasionFreq = profile?.occasionFrequency || 'Mix of Everything';
-  const colorComfort = profile?.colorComfort || 'Some Color';
 
-  const handleUpdateProfile = (key: string, value: any) => {
-    saveProfile({
-      height: key === 'height' ? value : height,
-      bodyShape: key === 'bodyShape' ? value : bodyShape,
-      skinTone: key === 'skinTone' ? value : skinTone,
-      undertone: key === 'undertone' ? value : undertone,
-      stylePreference: key === 'stylePref' ? value : stylePref,
-      coveragePreference: key === 'coveragePref' ? value : coveragePref,
-      occasionFrequency: key === 'occasionFreq' ? value : occasionFreq,
-      colorComfort: key === 'colorComfort' ? value : colorComfort,
-    });
+  const handleUpdate = (updatedFields: Partial<UserStyleProfile>) => {
+    saveProfile(updatedFields);
+  };
+
+  const handleComfortZoneToggle = (zone: ComfortZone) => {
+    const currentZones = profile?.comfortZones || ['None'];
+    if (zone === 'None') {
+      handleUpdate({ comfortZones: ['None'] });
+    } else {
+      const filtered = currentZones.filter((z) => z !== 'None');
+      if (filtered.includes(zone)) {
+        const next = filtered.filter((z) => z !== zone);
+        handleUpdate({ comfortZones: next.length === 0 ? ['None'] : next });
+      } else {
+        handleUpdate({ comfortZones: [...filtered, zone] });
+      }
+    }
+  };
+
+  const handleJewelryToggle = (jewelry: JewelryType) => {
+    const currentJewelry = profile?.jewelryTypes || ['None'];
+    if (jewelry === 'None') {
+      handleUpdate({ jewelryTypes: ['None'] });
+    } else {
+      const filtered = currentJewelry.filter((j) => j !== 'None');
+      if (filtered.includes(jewelry)) {
+        const next = filtered.filter((j) => j !== jewelry);
+        handleUpdate({ jewelryTypes: next.length === 0 ? ['None'] : next });
+      } else {
+        handleUpdate({ jewelryTypes: [...filtered, jewelry] });
+      }
+    }
+  };
+
+  const addAvoidTag = () => {
+    const trimmed = avoidInput.trim().toLowerCase();
+    const currentAvoid = profile?.avoidList || [];
+    if (trimmed && !currentAvoid.includes(trimmed)) {
+      handleUpdate({ avoidList: [...currentAvoid, trimmed] });
+    }
+    setAvoidInput('');
+  };
+
+  const removeAvoidTag = (tag: string) => {
+    const currentAvoid = profile?.avoidList || [];
+    handleUpdate({ avoidList: currentAvoid.filter((t) => t !== tag) });
   };
 
   return (
@@ -67,235 +134,274 @@ export default function ProfileScreen() {
         <Text style={[styles.emailText, { color: theme.tabIconDefault }]}>{email}</Text>
       </View>
 
-      {/* Style Profile Settings */}
-      <Text style={[styles.sectionTitle, { color: theme.text }]}>Style Personalization</Text>
+      {/* 1. Body Profile Section */}
+      <TouchableOpacity 
+        style={[styles.sectionHeader, { borderBottomColor: theme.border }]} 
+        onPress={() => toggleSection('body')}
+      >
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Body Profile</Text>
+        {sections.body ? <ChevronUp size={20} color={theme.text} /> : <ChevronDown size={20} color={theme.text} />}
+      </TouchableOpacity>
       
-      {/* Height Selection */}
-      <View style={[styles.profileSection, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <Text style={[styles.settingLabel, { color: theme.text }]}>Height</Text>
-        <RNView style={styles.chipRow}>
-          {HEIGHTS.map((h) => {
-            const isSelected = height === h;
-            return (
-              <TouchableOpacity
-                key={h}
-                onPress={() => handleUpdateProfile('height', h)}
-                style={[
-                  styles.optionChip,
-                  {
-                    backgroundColor: isSelected ? theme.tint : 'transparent',
-                    borderColor: isSelected ? theme.tint : theme.border,
-                  }
-                ]}
-              >
-                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
-                <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
-                  {h}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </RNView>
-      </View>
+      {sections.body && (
+        <View style={[styles.profileSection, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <StyledDropdown 
+            label="Age Range" 
+            value={profile?.ageRange} 
+            options={AGE_RANGES} 
+            onChange={(val) => handleUpdate({ ageRange: val as AgeRange })}
+          />
 
-      {/* Body Shape Selection */}
-      <View style={[styles.profileSection, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <Text style={[styles.settingLabel, { color: theme.text }]}>Body Shape</Text>
-        <RNView style={styles.chipRow}>
-          {BODY_SHAPES.map((shape) => {
-            const isSelected = bodyShape === shape;
-            return (
-              <TouchableOpacity
-                key={shape}
-                onPress={() => handleUpdateProfile('bodyShape', shape)}
-                style={[
-                  styles.optionChip,
-                  {
-                    backgroundColor: isSelected ? theme.tint : 'transparent',
-                    borderColor: isSelected ? theme.tint : theme.border,
-                  }
-                ]}
-              >
-                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
-                <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
-                  {shape}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </RNView>
-      </View>
+          <StyledDropdown 
+            label="Height" 
+            value={profile?.height} 
+            options={HEIGHTS} 
+            onChange={(val) => handleUpdate({ height: val as Height })}
+          />
 
-      {/* Skin Tone Selection */}
-      <View style={[styles.profileSection, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <Text style={[styles.settingLabel, { color: theme.text }]}>Skin Tone</Text>
-        <RNView style={styles.chipRow}>
-          {SKIN_TONES.map((tone) => {
-            const isSelected = skinTone === tone;
-            return (
-              <TouchableOpacity
-                key={tone}
-                onPress={() => handleUpdateProfile('skinTone', tone)}
-                style={[
-                  styles.optionChip,
-                  {
-                    backgroundColor: isSelected ? theme.tint : 'transparent',
-                    borderColor: isSelected ? theme.tint : theme.border,
-                  }
-                ]}
-              >
-                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
-                <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
-                  {tone}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </RNView>
-      </View>
+          <StyledDropdown 
+            label="Body Shape" 
+            value={profile?.bodyShape} 
+            options={BODY_SHAPES} 
+            onChange={(val) => handleUpdate({ bodyShape: val as BodyShape })}
+          />
 
-      {/* Undertone Selection */}
-      <View style={[styles.profileSection, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <Text style={[styles.settingLabel, { color: theme.text }]}>Skin Undertone</Text>
-        <RNView style={styles.chipRow}>
-          {UNDERTONES.map((u) => {
-            const isSelected = undertone === u;
-            return (
-              <TouchableOpacity
-                key={u}
-                onPress={() => handleUpdateProfile('undertone', u)}
-                style={[
-                  styles.optionChip,
-                  {
-                    backgroundColor: isSelected ? theme.tint : 'transparent',
-                    borderColor: isSelected ? theme.tint : theme.border,
-                  }
-                ]}
-              >
-                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
-                <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
-                  {u}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </RNView>
-      </View>
+          <RNView style={styles.sizesRow}>
+            <RNView style={{ flex: 1 }}>
+              <StyledDropdown 
+                label="Top Size" 
+                value={profile?.topSize} 
+                options={TOP_SIZES} 
+                placeholder="Top (XS-3XL)"
+                onChange={(val) => handleUpdate({ topSize: val as TopSize })}
+              />
+            </RNView>
+            <RNView style={{ width: 12 }} />
+            <RNView style={{ flex: 1 }}>
+              <StyledDropdown 
+                label="Bottom Size" 
+                value={profile?.bottomSize} 
+                options={BOTTOM_SIZES} 
+                placeholder="Waist (24-40)"
+                onChange={(val) => handleUpdate({ bottomSize: val as BottomSize })}
+              />
+            </RNView>
+          </RNView>
 
-      {/* Style Preference Selection */}
-      <View style={[styles.profileSection, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <Text style={[styles.settingLabel, { color: theme.text }]}>Primary Style</Text>
-        <RNView style={styles.chipRow}>
-          {STYLES.map((style) => {
-            const isSelected = stylePref === style;
-            return (
-              <TouchableOpacity
-                key={style}
-                onPress={() => handleUpdateProfile('stylePref', style)}
-                style={[
-                  styles.optionChip,
-                  {
-                    backgroundColor: isSelected ? theme.tint : 'transparent',
-                    borderColor: isSelected ? theme.tint : theme.border,
-                  }
-                ]}
-              >
-                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
-                <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
-                  {style}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </RNView>
-      </View>
+          <RNView style={styles.sizesRow}>
+            <RNView style={{ flex: 1 }}>
+              <StyledDropdown 
+                label="Bra Size" 
+                value={profile?.braSize} 
+                options={BRA_SIZES} 
+                placeholder="Bra size"
+                onChange={(val) => handleUpdate({ braSize: val as BraSize })}
+              />
+            </RNView>
+            <RNView style={{ width: 12 }} />
+            <RNView style={{ flex: 1 }}>
+              <StyledDropdown 
+                label="Shoe Size" 
+                value={profile?.shoeSize} 
+                options={SHOE_SIZES} 
+                placeholder="Shoe size"
+                onChange={(val) => handleUpdate({ shoeSize: val as ShoeSize })}
+              />
+            </RNView>
+          </RNView>
 
-      {/* Coverage Preference Selection */}
-      <View style={[styles.profileSection, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <Text style={[styles.settingLabel, { color: theme.text }]}>Coverage Preference</Text>
-        <RNView style={styles.chipRow}>
-          {COVERAGE_PREFERENCES.map((c) => {
-            const isSelected = coveragePref === c;
-            return (
-              <TouchableOpacity
-                key={c}
-                onPress={() => handleUpdateProfile('coveragePref', c)}
-                style={[
-                  styles.optionChip,
-                  {
-                    backgroundColor: isSelected ? theme.tint : 'transparent',
-                    borderColor: isSelected ? theme.tint : theme.border,
-                  }
-                ]}
-              >
-                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
-                <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
-                  {c}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </RNView>
-      </View>
+          <Text style={styles.fieldLabel}>Comfort Zones (Areas you prefer to de-emphasize)</Text>
+          <RNView style={styles.chipRow}>
+            {COMFORT_ZONES.map((zone) => {
+              const isSelected = (profile?.comfortZones || ['None']).includes(zone);
+              return (
+                <TouchableOpacity
+                  key={zone}
+                  onPress={() => handleComfortZoneToggle(zone)}
+                  style={[
+                    styles.optionChip,
+                    {
+                      backgroundColor: isSelected ? theme.tint : 'transparent',
+                      borderColor: isSelected ? theme.tint : theme.border,
+                    }
+                  ]}
+                >
+                  {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
+                  <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
+                    {zone}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </RNView>
+        </View>
+      )}
 
-      {/* Occasion Frequency Selection */}
-      <View style={[styles.profileSection, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <Text style={[styles.settingLabel, { color: theme.text }]}>Occasion Frequency</Text>
-        <RNView style={styles.chipRow}>
-          {OCCASION_FREQUENCIES.map((occ) => {
-            const isSelected = occasionFreq === occ;
-            return (
-              <TouchableOpacity
-                key={occ}
-                onPress={() => handleUpdateProfile('occasionFreq', occ)}
-                style={[
-                  styles.optionChip,
-                  {
-                    backgroundColor: isSelected ? theme.tint : 'transparent',
-                    borderColor: isSelected ? theme.tint : theme.border,
-                  }
-                ]}
-              >
-                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
-                <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
-                  {occ}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </RNView>
-      </View>
+      {/* 2. Color & Tone Section */}
+      <TouchableOpacity 
+        style={[styles.sectionHeader, { borderBottomColor: theme.border }]} 
+        onPress={() => toggleSection('color')}
+      >
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Color & Tone</Text>
+        {sections.color ? <ChevronUp size={20} color={theme.text} /> : <ChevronDown size={20} color={theme.text} />}
+      </TouchableOpacity>
 
-      {/* Color Comfort Selection */}
-      <View style={[styles.profileSection, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <Text style={[styles.settingLabel, { color: theme.text }]}>Color Comfort</Text>
-        <RNView style={styles.chipRow}>
-          {COLOR_COMFORTS.map((col) => {
-            const isSelected = colorComfort === col;
-            return (
-              <TouchableOpacity
-                key={col}
-                onPress={() => handleUpdateProfile('colorComfort', col)}
-                style={[
-                  styles.optionChip,
-                  {
-                    backgroundColor: isSelected ? theme.tint : 'transparent',
-                    borderColor: isSelected ? theme.tint : theme.border,
-                  }
-                ]}
-              >
-                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
-                <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
-                  {col}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </RNView>
-      </View>
+      {sections.color && (
+        <View style={[styles.profileSection, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <StyledDropdown 
+            label="Skin Tone" 
+            value={profile?.skinTone} 
+            options={SKIN_TONES} 
+            onChange={(val) => handleUpdate({ skinTone: val as SkinTone })}
+          />
+
+          <StyledDropdown 
+            label="Undertone" 
+            value={profile?.undertone} 
+            options={UNDERTONES} 
+            onChange={(val) => handleUpdate({ undertone: val as Undertone })}
+          />
+
+          <StyledDropdown 
+            label="Color Comfort" 
+            value={profile?.colorComfort} 
+            options={COLOR_COMFORTS} 
+            onChange={(val) => handleUpdate({ colorComfort: val as ColorComfort })}
+          />
+        </View>
+      )}
+
+      {/* 3. Style & Lifestyle Section */}
+      <TouchableOpacity 
+        style={[styles.sectionHeader, { borderBottomColor: theme.border }]} 
+        onPress={() => toggleSection('style')}
+      >
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Style & Lifestyle</Text>
+        {sections.style ? <ChevronUp size={20} color={theme.text} /> : <ChevronDown size={20} color={theme.text} />}
+      </TouchableOpacity>
+
+      {sections.style && (
+        <View style={[styles.profileSection, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <StyledDropdown 
+            label="Primary Style Preference" 
+            value={profile?.stylePreference} 
+            options={STYLES} 
+            onChange={(val) => handleUpdate({ stylePreference: val as StylePreference })}
+          />
+
+          <StyledDropdown 
+            label="Coverage Preference" 
+            value={profile?.coveragePreference} 
+            options={COVERAGE_PREFERENCES} 
+            onChange={(val) => handleUpdate({ coveragePreference: val as CoveragePreference })}
+          />
+
+          <StyledDropdown 
+            label="Preferred Budget Tier" 
+            value={profile?.budgetTier} 
+            options={BUDGET_TIERS} 
+            placeholder="Select budget preference"
+            onChange={(val) => handleUpdate({ budgetTier: val as BudgetTier })}
+          />
+
+          <StyledDropdown 
+            label="Occasion Frequency" 
+            value={profile?.occasionFrequency} 
+            options={OCCASION_FREQUENCIES} 
+            onChange={(val) => handleUpdate({ occasionFrequency: val as OccasionFrequency })}
+          />
+
+          <Text style={styles.fieldLabel}>Jewelry Types You Wear</Text>
+          <RNView style={styles.chipRow}>
+            {JEWELRY_TYPES.map((j) => {
+              const isSelected = (profile?.jewelryTypes || ['None']).includes(j);
+              return (
+                <TouchableOpacity
+                  key={j}
+                  onPress={() => handleJewelryToggle(j)}
+                  style={[
+                    styles.optionChip,
+                    {
+                      backgroundColor: isSelected ? theme.tint : 'transparent',
+                      borderColor: isSelected ? theme.tint : theme.border,
+                    }
+                  ]}
+                >
+                  {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
+                  <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
+                    {j}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </RNView>
+        </View>
+      )}
+
+      {/* 4. Location Section */}
+      <TouchableOpacity 
+        style={[styles.sectionHeader, { borderBottomColor: theme.border }]} 
+        onPress={() => toggleSection('location')}
+      >
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Location</Text>
+        {sections.location ? <ChevronUp size={20} color={theme.text} /> : <ChevronDown size={20} color={theme.text} />}
+      </TouchableOpacity>
+
+      {sections.location && (
+        <View style={[styles.profileSection, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <StyledDropdown 
+            label="City" 
+            value={profile?.city} 
+            options={CITIES} 
+            placeholder="Select your city"
+            onChange={(val) => handleUpdate({ city: val as City })}
+          />
+        </View>
+      )}
+
+      {/* 5. Avoid List Section */}
+      <TouchableOpacity 
+        style={[styles.sectionHeader, { borderBottomColor: theme.border }]} 
+        onPress={() => toggleSection('avoid')}
+      >
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Avoid List</Text>
+        {sections.avoid ? <ChevronUp size={20} color={theme.text} /> : <ChevronDown size={20} color={theme.text} />}
+      </TouchableOpacity>
+
+      {sections.avoid && (
+        <View style={[styles.profileSection, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <Text style={styles.fieldLabel}>Fabrics, fits, or items to ignore in suggestions</Text>
+          <RNView style={styles.inputRow}>
+            <TextInput
+              style={[styles.textInput, { borderColor: theme.border, color: theme.text, backgroundColor: theme.card }]}
+              placeholder="e.g. ruffles, silk, bodycon"
+              placeholderTextColor={theme.tabIconDefault}
+              value={avoidInput}
+              onChangeText={setAvoidInput}
+              onSubmitEditing={addAvoidTag}
+            />
+            <TouchableOpacity style={[styles.addBtn, { backgroundColor: theme.tint }]} onPress={addAvoidTag}>
+              <Text style={styles.addBtnText}>Add</Text>
+            </TouchableOpacity>
+          </RNView>
+
+          <RNView style={styles.avoidChipsRow}>
+            {(profile?.avoidList || []).map((tag) => (
+              <RNView key={tag} style={[styles.avoidChip, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                <Text style={styles.avoidChipText}>{tag}</Text>
+                <TouchableOpacity onPress={() => removeAvoidTag(tag)} style={styles.avoidRemove}>
+                  <Text style={{ color: theme.accent, fontWeight: 'bold' }}>×</Text>
+                </TouchableOpacity>
+              </RNView>
+            ))}
+          </RNView>
+        </View>
+      )}
 
       {/* Liked Looks Section */}
-      <Text style={[styles.sectionTitle, { color: theme.text }]}>Liked Looks</Text>
+      <RNView style={styles.sectionHeaderLiked}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Liked Looks</Text>
+      </RNView>
       {likedOutfits.length > 0 ? (
         <ScrollView 
           horizontal 
@@ -330,7 +436,9 @@ export default function ProfileScreen() {
       )}
 
       {/* General Settings List */}
-      <Text style={[styles.sectionTitle, { color: theme.text }]}>Account</Text>
+      <RNView style={styles.sectionHeaderLiked}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Account</Text>
+      </RNView>
       <View style={[styles.profileSection, { backgroundColor: theme.card, borderColor: theme.border, padding: 0 }]}>
         <TouchableOpacity style={[styles.listItem, { borderBottomColor: theme.border }]}>
           <Shield size={18} color={theme.tabIconDefault} style={{ marginRight: 12 }} />
@@ -380,10 +488,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '800',
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
     marginBottom: 12,
+  },
+  sectionHeaderLiked: {
+    paddingVertical: 14,
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -393,15 +512,23 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 20,
   },
-  settingLabel: {
+  fieldLabel: {
     fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 12,
+    fontWeight: '600',
+    marginBottom: 8,
+    opacity: 0.8,
+    marginTop: 10,
+  },
+  sizesRow: {
+    flexDirection: 'row',
+    backgroundColor: 'transparent',
   },
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+    backgroundColor: 'transparent',
+    marginTop: 4,
   },
   optionChip: {
     flexDirection: 'row',
@@ -414,6 +541,54 @@ const styles = StyleSheet.create({
   optionText: {
     fontSize: 13,
     fontWeight: '600',
+  },
+  inputRow: {
+    flexDirection: 'row',
+    gap: 8,
+    backgroundColor: 'transparent',
+    marginBottom: 12,
+  },
+  textInput: {
+    flex: 1,
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    fontSize: 14,
+  },
+  addBtn: {
+    height: 48,
+    width: 70,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  avoidChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    backgroundColor: 'transparent',
+  },
+  avoidChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 12,
+    paddingRight: 8,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  avoidChipText: {
+    fontSize: 13,
+  },
+  avoidRemove: {
+    marginLeft: 6,
+    padding: 2,
   },
   listItem: {
     flexDirection: 'row',

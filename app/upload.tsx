@@ -1,73 +1,88 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, TouchableOpacity, Image, ScrollView, TextInput, KeyboardAvoidingView, Platform, View as RNView } from 'react-native';
-import { Text, View } from '@/components/Themed';
+import { Text, View, useThemeColor } from '@/components/Themed';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '@/store';
-import { Camera, Image as ImageIcon, X, Check, Tag } from 'lucide-react-native';
+import { Camera, Image as ImageIcon, X, Check, Tag, ChevronDown, ChevronUp } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
+import StyledDropdown from '@/components/StyledDropdown';
+import ColorPalettePicker from '@/components/ColorPalettePicker';
+import { COLOR_PALETTE } from '@/constants/ColorPalette';
 import { 
-  Category, StylePreference, Color, Fit, Fabric, Length, Pattern, Neckline, Sleeve, Season 
+  Category, StylePreference, Fit, Fabric, Length, Pattern, Neckline, Sleeve, Season,
+  GarmentSubType, WaistPosition, Structure, Embellishment, Opacity
 } from '@/types';
 
-const CATEGORIES: Category[] = ['Tops', 'Bottoms', 'Dresses', 'Ethnic', 'Outers', 'Shoes'];
-const STYLE_CATEGORIES: StylePreference[] = ['Western', 'Ethnic', 'Fusion', 'Minimal', 'Streetwear'];
-
-const COLORS: Color[] = [
-  'White', 'Black', 'Grey', 'Beige', 'Navy', 'Blue', 'Light Blue', 'Indigo', 
-  'Maroon', 'Burgundy', 'Red', 'Pink', 'Lavender', 'Purple', 'Emerald', 'Green', 
-  'Olive', 'Teal', 'Yellow', 'Mustard', 'Orange', 'Rust', 'Coral', 'Peach', 
-  'Brown', 'Chocolate', 'Gold', 'Silver'
+const CATEGORIES: Category[] = [
+  'Tops', 'Bottoms', 'Dresses',
+  'Kurtas & Tunics', 'Sarees', 'Lehengas', 'Suits & Sets',
+  'Dupattas & Stoles', 'Ethnic Bottoms',
+  'Outers', 'Shoes', 'Accessories'
 ];
 
+const STYLE_CATEGORIES: StylePreference[] = ['Western', 'Ethnic', 'Fusion', 'Minimal', 'Streetwear'];
+
 const FITS: Fit[] = ['Oversized', 'Relaxed', 'Regular', 'Slim', 'Fitted', 'Boxy'];
-const FABRICS: Fabric[] = ['Cotton', 'Silk', 'Chiffon', 'Denim', 'Linen', 'Georgette', 'Velvet', 'Polyester', 'Knit', 'Other'];
+const FABRICS: Fabric[] = [
+  'Cotton', 'Silk', 'Chiffon', 'Denim', 'Linen', 'Georgette', 'Velvet',
+  'Polyester', 'Knit', 'Crepe', 'Satin', 'Organza', 'Net', 'Brocade',
+  'Chanderi', 'Banarasi', 'Tussar Silk', 'Rayon', 'Lycra / Stretch',
+  'Leather / Faux Leather', 'Wool', 'Fleece', 'Other'
+];
 const LENGTHS: Length[] = ['Crop', 'Short', 'Knee-length', 'Midi', 'Maxi', 'Full', 'Not Applicable'];
 const PATTERNS: Pattern[] = ['Solid', 'Stripes', 'Floral', 'Geometric', 'Checks', 'Embroidered', 'Printed', 'Abstract'];
 const NECKLINES: Neckline[] = ['Round', 'V-neck', 'Boat', 'Collar', 'Off-shoulder', 'Halter', 'High-neck', 'Not Applicable'];
 const SLEEVES: Sleeve[] = ['Sleeveless', 'Half', '3/4', 'Full', 'Not Applicable'];
 const SEASONS: Season[] = ['Summer', 'Winter', 'Monsoon', 'All-season'];
 
-const INDIAN_OCCASIONS = [
-  'Diwali Party (Family)', 'Diwali Party (Friends)', 'Holi', 'Navratri / Garba', 'Eid', 'Regional Festival',
-  'Mehendi Function', 'Sangeet Night', 'Wedding (Close Family)', 'Wedding (Guest)', 'Reception', 'Cocktail / Pre-wedding',
-  'First Day of College', 'College Farewell', 'College Fest (Day)', 'College Fest (Night)', 'College Trip', 'Internship (Startup)', 'Internship (Corporate)',
-  'Job Interview (Tech)', 'Job Interview (Corporate)', 'Office (Startup)', 'Office (Formal)', 'Client Meeting',
-  'Casual Outing', 'Mall / Shopping Day', 'Brunch / Cafe', 'Dinner Date', 'First Date', 'Night Out',
-  'My Birthday', "Friend's Birthday", 'Travel Day'
+const WAIST_POSITIONS: WaistPosition[] = ['High-waisted', 'Mid-rise', 'Low-rise', 'Not Applicable'];
+const STRUCTURES: Structure[] = ['Structured', 'Semi-structured', 'Fluid / Flowy', 'Stretchy / Bodycon'];
+const OPACITIES: Opacity[] = ['Opaque', 'Semi-sheer', 'Sheer'];
+const EMBELLISHMENTS: Embellishment[] = [
+  'None', 'Machine Embroidery', 'Hand Embroidery', 'Zardozi', 'Mirror Work',
+  'Sequin / Mukaish', 'Thread Work', 'Gota Patti', 'Beadwork',
+  'Block Print', 'Bandhani', 'Kalamkari', 'Applique', 'Lace', 'Other'
 ];
 
-const COLOR_MAP: Record<string, string> = {
-  'White': '#FFFFFF',
-  'Black': '#000000',
-  'Grey': '#808080',
-  'Beige': '#F5F5DC',
-  'Navy': '#000080',
-  'Blue': '#0000FF',
-  'Light Blue': '#ADD8E6',
-  'Indigo': '#4B0082',
-  'Maroon': '#800000',
-  'Burgundy': '#800020',
-  'Red': '#FF0000',
-  'Pink': '#FFC0CB',
-  'Lavender': '#E6E6FA',
-  'Purple': '#800080',
-  'Emerald': '#50C878',
-  'Green': '#008000',
-  'Olive': '#808000',
-  'Teal': '#008080',
-  'Yellow': '#FFFF00',
-  'Mustard': '#FFDB58',
-  'Orange': '#FFA500',
-  'Rust': '#B7410E',
-  'Coral': '#FF7F50',
-  'Peach': '#FFDAB9',
-  'Brown': '#A52A2A',
-  'Chocolate': '#7B3F00',
-  'Gold': '#FFD700',
-  'Silver': '#C0C0C0'
+const SUB_TYPES_BY_CATEGORY: Record<Category, string[]> = {
+  'Tops': ['T-shirt', 'Shirt', 'Blouse', 'Crop Top', 'Tank Top', 'Camisole', 'Bodysuit', 'Tube Top'],
+  'Bottoms': ['Jeans', 'Trousers', 'Shorts', 'Skirt', 'Culottes', 'Joggers', 'Leggings'],
+  'Dresses': ['Maxi Dress', 'Midi Dress', 'Mini Dress', 'Bodycon', 'A-line Dress', 'Shift Dress', 'Wrap Dress'],
+  'Kurtas & Tunics': ['Straight Kurta', 'Anarkali', 'A-line Kurta', 'Short Kurti', 'Kaftan', 'Peplum Kurta'],
+  'Sarees': ['Saree', 'Pre-stitched Saree', 'Saree Blouse'],
+  'Lehengas': ['Lehenga Skirt', 'Lehenga Set', 'Choli / Blouse'],
+  'Suits & Sets': ['Salwar Kameez', 'Sharara Set', 'Gharara Set', 'Co-ord Set', 'Palazzo Set'],
+  'Dupattas & Stoles': ['Dupatta', 'Stole', 'Scarf'],
+  'Ethnic Bottoms': ['Churidar', 'Patiala', 'Palazzo', 'Dhoti Pants', 'Sharara', 'Gharara'],
+  'Outers': ['Jacket', 'Blazer', 'Cardigan', 'Shrug', 'Waistcoat', 'Hoodie', 'Sweater', 'Cape'],
+  'Shoes': ['Heels', 'Flats', 'Sneakers', 'Boots', 'Sandals', 'Juttis', 'Kolhapuris', 'Wedges'],
+  'Accessories': ['Bag', 'Belt', 'Watch', 'Sunglasses', 'Hair Accessory', 'Other']
 };
+
+const INDIAN_OCCASIONS = [
+  // Festive & Family
+  'Diwali Party (Family)', 'Diwali Party (Friends)', 'Holi', 'Navratri / Garba', 'Eid', 'Regional Festival',
+  'Pooja / Temple Visit', 'Baby Shower / Godh Bharai',
+
+  // Weddings
+  'Mehendi Function', 'Sangeet Night', 'Wedding (Close Family)', 'Wedding (Guest)', 'Reception', 'Cocktail / Pre-wedding',
+  'Engagement Ceremony', 'Roka / Sagai',
+
+  // College
+  'First Day of College', 'College Farewell', 'College Fest (Day)', 'College Fest (Night)', 'College Trip', 'Internship (Startup)', 'Internship (Corporate)',
+
+  // Professional
+  'Job Interview (Tech)', 'Job Interview (Corporate)', 'Office (Startup)', 'Office (Formal)', 'Client Meeting', 'WFH / Video Call',
+
+  // Social
+  'Casual Outing', 'Mall / Shopping Day', 'Brunch / Cafe', 'Dinner Date', 'First Date', 'Night Out', 'House Party',
+
+  // Special
+  'My Birthday', "Friend's Birthday", 'Travel Day', 'Airport / Travel Look', 'Gym / Workout', 'Beach / Pool Day',
+  'Hill Station Trip', 'Heritage City Sightseeing', 'Graduation Day', 'Award Ceremony / Convocation', 'Anniversary Dinner'
+];
 
 export default function UploadScreen() {
   const colorScheme = useColorScheme();
@@ -78,19 +93,54 @@ export default function UploadScreen() {
   // Form States
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [category, setCategory] = useState<Category>('Tops');
+  const [subType, setSubType] = useState<string>('T-shirt');
   const [style, setStyle] = useState<StylePreference>('Western');
-  const [color, setColor] = useState<Color>('White');
+  const [selectedColors, setSelectedColors] = useState<string[]>([]);
+  const [colorPickerVisible, setColorPickerVisible] = useState(false);
+
   const [fit, setFit] = useState<Fit>('Regular');
   const [fabric, setFabric] = useState<Fabric>('Cotton');
-  const [length, setLength] = useState<Length>('Full');
+  const [length, setLength] = useState<Length>('Short');
   const [pattern, setPattern] = useState<Pattern>('Solid');
   const [neckline, setNeckline] = useState<Neckline>('Round');
   const [sleeve, setSleeve] = useState<Sleeve>('Full');
+  const [waistPosition, setWaistPosition] = useState<WaistPosition>('Not Applicable');
+  const [structure, setStructure] = useState<Structure>('Semi-structured');
+  const [opacity, setOpacity] = useState<Opacity>('Opaque');
+  const [embellishment, setEmbellishment] = useState<Embellishment>('None');
+
   const [season, setSeason] = useState<Season>('All-season');
   const [selectedOccasions, setSelectedOccasions] = useState<string[]>([]);
   const [tagsInput, setTagsInput] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Collapsible Section States
+  const [collapsed, setCollapsed] = useState({
+    details: true,
+    ethnic: true,
+    occasions: true
+  });
+
+  // Update context-dependent sub-type list on category change
+  useEffect(() => {
+    const subs = SUB_TYPES_BY_CATEGORY[category];
+    if (subs && subs.length > 0) {
+      setSubType(subs[0]);
+    }
+  }, [category]);
+
+  const toggleSection = (section: keyof typeof collapsed) => {
+    setCollapsed(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  const isEthnicCategory = [
+    'Kurtas & Tunics', 'Sarees', 'Lehengas', 'Suits & Sets', 'Dupattas & Stoles', 'Ethnic Bottoms'
+  ].includes(category);
+
+  const isBottomCategory = [
+    'Bottoms', 'Ethnic Bottoms', 'Lehengas'
+  ].includes(category);
 
   // Image Picker Logic
   const handlePickImage = async (useCamera: boolean) => {
@@ -137,14 +187,13 @@ export default function UploadScreen() {
   };
 
   const handleUpload = async () => {
-    console.log('[KLOSET-DEBUG] handleUpload button pressed. imageUri:', imageUri ? imageUri.substring(0, 100) : 'null');
-    if (loading) {
-      console.log('[KLOSET-DEBUG] handleUpload aborted: already loading');
+    if (loading) return;
+    if (!imageUri) {
+      setError('Please select or take a photo of the clothing item');
       return;
     }
-    if (!imageUri) {
-      console.log('[KLOSET-DEBUG] handleUpload aborted: no image selected');
-      setError('Please select or take a photo of the clothing item');
+    if (selectedColors.length === 0) {
+      setError('Please select at least 1 color for this garment');
       return;
     }
     setError('');
@@ -157,14 +206,14 @@ export default function UploadScreen() {
         .map((tag) => tag.trim().toLowerCase())
         .filter((tag) => tag.length > 0);
 
-      console.log('[KLOSET-DEBUG] Preparing to call addWardrobeItem...');
       // Save to Zustand storage (which uploads to storage and database)
       await addWardrobeItem({
         imageUrl: imageUri,
         category,
-        color,
+        subType: subType as GarmentSubType,
+        colors: selectedColors,
         style,
-        tags: tags.length > 0 ? tags : [category.toLowerCase()],
+        tags: tags.length > 0 ? tags : [category.toLowerCase(), subType.toLowerCase()],
         fit,
         fabric,
         length,
@@ -172,15 +221,16 @@ export default function UploadScreen() {
         neckline,
         sleeve,
         season,
+        waistPosition: isBottomCategory ? waistPosition : 'Not Applicable',
+        structure,
+        embellishment: isEthnicCategory ? embellishment : 'None',
+        opacity,
         occasions: selectedOccasions.length > 0 ? selectedOccasions : ['Casual Outing'],
       });
 
-      console.log('[KLOSET-DEBUG] addWardrobeItem succeeded! Navigating back...');
       setLoading(false);
-      // Return to wardrobe tab
       router.back();
     } catch (err: any) {
-      console.error('[KLOSET-DEBUG] handleUpload caught error:', err);
       setError(err.message || 'An error occurred during save');
       setLoading(false);
     }
@@ -195,6 +245,7 @@ export default function UploadScreen() {
         style={[styles.container, { backgroundColor: theme.background }]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Header Close Row */}
         <RNView style={styles.headerRow}>
@@ -210,7 +261,7 @@ export default function UploadScreen() {
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-        {/* Image Selection Area */}
+        {/* Section 1: Photo (always expanded) */}
         <RNView style={[styles.imageArea, { backgroundColor: theme.card, borderColor: theme.border }]} pointerEvents={loading ? 'none' : 'auto'}>
           {imageUri ? (
             <RNView style={styles.previewContainer}>
@@ -246,302 +297,194 @@ export default function UploadScreen() {
           )}
         </RNView>
 
-        {/* Input: Category */}
-        <Text style={[styles.sectionLabel, { color: theme.text }]}>Category</Text>
-        <RNView style={styles.chipRow}>
-          {CATEGORIES.map((cat) => {
-            const isSelected = category === cat;
-            return (
-              <TouchableOpacity
-                key={cat}
-                onPress={() => setCategory(cat)}
-                style={[
-                  styles.optionChip,
-                  {
-                    backgroundColor: isSelected ? theme.tint : theme.card,
-                    borderColor: isSelected ? theme.tint : theme.border,
-                  }
-                ]}
-              >
-                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
-                <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
-                  {cat}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </RNView>
+        {/* Section 2: Basics (always expanded) */}
+        <View style={styles.basicsContainer}>
+          <StyledDropdown 
+            label="Category" 
+            value={category} 
+            options={CATEGORIES} 
+            onChange={(val) => setCategory(val as Category)}
+          />
 
-        {/* Input: Style */}
-        <Text style={[styles.sectionLabel, { color: theme.text }]}>Style Tag</Text>
-        <RNView style={styles.chipRow}>
-          {STYLE_CATEGORIES.map((st) => {
-            const isSelected = style === st;
-            return (
-              <TouchableOpacity
-                key={st}
-                onPress={() => setStyle(st)}
-                style={[
-                  styles.optionChip,
-                  {
-                    backgroundColor: isSelected ? theme.tint : theme.card,
-                    borderColor: isSelected ? theme.tint : theme.border,
-                  }
-                ]}
-              >
-                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
-                <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
-                  {st}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </RNView>
+          <StyledDropdown 
+            label="Sub-type" 
+            value={subType} 
+            options={SUB_TYPES_BY_CATEGORY[category] || []} 
+            onChange={(val) => setSubType(val)}
+          />
 
-        {/* Input: Color */}
-        <Text style={[styles.sectionLabel, { color: theme.text }]}>Color</Text>
-        <RNView style={styles.chipRow}>
-          {COLORS.map((col) => {
-            const isSelected = color === col;
-            const dotColor = COLOR_MAP[col] || '#FFFFFF';
-            return (
-              <TouchableOpacity
-                key={col}
-                onPress={() => setColor(col)}
-                style={[
-                  styles.optionChip,
-                  {
-                    backgroundColor: isSelected ? theme.tint : theme.card,
-                    borderColor: isSelected ? theme.tint : theme.border,
-                  }
-                ]}
-              >
-                <RNView style={[
-                  styles.colorIndicator, 
-                  { 
-                    backgroundColor: dotColor, 
-                    borderWidth: col === 'White' ? 1 : 0, 
-                    borderColor: theme.border 
-                  }
-                ]} />
-                <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text, marginLeft: 6 }]}>
-                  {col}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </RNView>
+          <Text style={[styles.sectionLabel, { color: theme.text }]}>Style Tag</Text>
+          <RNView style={styles.chipRow}>
+            {STYLE_CATEGORIES.map((st) => {
+              const isSelected = style === st;
+              return (
+                <TouchableOpacity
+                  key={st}
+                  onPress={() => setStyle(st)}
+                  style={[
+                    styles.optionChip,
+                    {
+                      backgroundColor: isSelected ? theme.tint : theme.card,
+                      borderColor: isSelected ? theme.tint : theme.border,
+                    }
+                  ]}
+                >
+                  {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
+                  <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
+                    {st}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </RNView>
+        </View>
 
-        {/* Input: Fit */}
-        <Text style={[styles.sectionLabel, { color: theme.text }]}>Fit</Text>
-        <RNView style={styles.chipRow}>
-          {FITS.map((f) => {
-            const isSelected = fit === f;
-            return (
-              <TouchableOpacity
-                key={f}
-                onPress={() => setFit(f)}
-                style={[
-                  styles.optionChip,
-                  {
-                    backgroundColor: isSelected ? theme.tint : theme.card,
-                    borderColor: isSelected ? theme.tint : theme.border,
-                  }
-                ]}
-              >
-                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
-                <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
-                  {f}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </RNView>
+        {/* Section 3: Colors (always expanded) */}
+        <View style={styles.colorPickerContainer}>
+          <Text style={[styles.sectionLabel, { color: theme.text }]}>Colors (Up to 3)</Text>
+          
+          <TouchableOpacity 
+            style={[styles.swatchSelectorButton, { borderColor: theme.border, backgroundColor: theme.card }]}
+            onPress={() => setColorPickerVisible(true)}
+          >
+            <RNView style={styles.swatchSelectorLeft}>
+              {selectedColors.length > 0 ? (
+                <RNView style={styles.selectedSwatchesRow}>
+                  {selectedColors.map((colorName) => {
+                    const swatch = COLOR_PALETTE.find((s) => s.name === colorName);
+                    const isRainbow = swatch?.hex === '#RAINBOW';
+                    return (
+                      <RNView key={colorName} style={[styles.selectedSwatchDotPreview, isRainbow ? styles.rainbowDot : { backgroundColor: swatch?.hex || '#FFF' }]} />
+                    );
+                  })}
+                  <Text style={[styles.swatchBtnText, { color: theme.text }]}>
+                    {selectedColors.join(', ')}
+                  </Text>
+                </RNView>
+              ) : (
+                <Text style={{ color: theme.tabIconDefault }}>Select garment colors</Text>
+              )}
+            </RNView>
+            <ChevronDown size={20} color={theme.tabIconDefault} />
+          </TouchableOpacity>
+        </View>
 
-        {/* Input: Fabric */}
-        <Text style={[styles.sectionLabel, { color: theme.text }]}>Fabric</Text>
-        <RNView style={styles.chipRow}>
-          {FABRICS.map((f) => {
-            const isSelected = fabric === f;
-            return (
-              <TouchableOpacity
-                key={f}
-                onPress={() => setFabric(f)}
-                style={[
-                  styles.optionChip,
-                  {
-                    backgroundColor: isSelected ? theme.tint : theme.card,
-                    borderColor: isSelected ? theme.tint : theme.border,
-                  }
-                ]}
-              >
-                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
-                <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
-                  {f}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </RNView>
+        {/* Section 4: Details (collapsed by default) */}
+        <TouchableOpacity 
+          style={[styles.collapsibleHeader, { borderBottomColor: theme.border }]} 
+          onPress={() => toggleSection('details')}
+        >
+          <Text style={[styles.collapsibleTitle, { color: theme.text }]}>Garment Details</Text>
+          {collapsed.details ? <ChevronDown size={20} color={theme.text} /> : <ChevronUp size={20} color={theme.text} />}
+        </TouchableOpacity>
 
-        {/* Input: Length */}
-        <Text style={[styles.sectionLabel, { color: theme.text }]}>Length</Text>
-        <RNView style={styles.chipRow}>
-          {LENGTHS.map((l) => {
-            const isSelected = length === l;
-            return (
-              <TouchableOpacity
-                key={l}
-                onPress={() => setLength(l)}
-                style={[
-                  styles.optionChip,
-                  {
-                    backgroundColor: isSelected ? theme.tint : theme.card,
-                    borderColor: isSelected ? theme.tint : theme.border,
-                  }
-                ]}
-              >
-                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
-                <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
-                  {l}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </RNView>
+        {!collapsed.details && (
+          <View style={[styles.collapsibleContent, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <StyledDropdown label="Fit" value={fit} options={FITS} onChange={(val) => setFit(val as Fit)} />
+            <StyledDropdown label="Fabric" value={fabric} options={FABRICS} onChange={(val) => setFabric(val as Fabric)} />
+            <StyledDropdown label="Length" value={length} options={LENGTHS} onChange={(val) => setLength(val as Length)} />
+            <StyledDropdown label="Neckline" value={neckline} options={NECKLINES} onChange={(val) => setNeckline(val as Neckline)} />
+            <StyledDropdown label="Sleeve" value={sleeve} options={SLEEVES} onChange={(val) => setSleeve(val as Sleeve)} />
+            <StyledDropdown label="Structure" value={structure} options={STRUCTURES} onChange={(val) => setStructure(val as Structure)} />
+            <StyledDropdown label="Opacity" value={opacity} options={OPACITIES} onChange={(val) => setOpacity(val as Opacity)} />
+            
+            {isBottomCategory && (
+              <StyledDropdown 
+                label="Waist Position" 
+                value={waistPosition} 
+                options={WAIST_POSITIONS} 
+                onChange={(val) => setWaistPosition(val as WaistPosition)} 
+              />
+            )}
+          </View>
+        )}
 
-        {/* Input: Pattern */}
-        <Text style={[styles.sectionLabel, { color: theme.text }]}>Pattern</Text>
-        <RNView style={styles.chipRow}>
-          {PATTERNS.map((p) => {
-            const isSelected = pattern === p;
-            return (
-              <TouchableOpacity
-                key={p}
-                onPress={() => setPattern(p)}
-                style={[
-                  styles.optionChip,
-                  {
-                    backgroundColor: isSelected ? theme.tint : theme.card,
-                    borderColor: isSelected ? theme.tint : theme.border,
-                  }
-                ]}
-              >
-                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
-                <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
-                  {p}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </RNView>
+        {/* Section 5: Indian Craft & Embellishment (collapsed, ethnic only) */}
+        {isEthnicCategory && (
+          <>
+            <TouchableOpacity 
+              style={[styles.collapsibleHeader, { borderBottomColor: theme.border }]} 
+              onPress={() => toggleSection('ethnic')}
+            >
+              <Text style={[styles.collapsibleTitle, { color: theme.text }]}>Ethnic Craft & Print</Text>
+              {collapsed.ethnic ? <ChevronDown size={20} color={theme.text} /> : <ChevronUp size={20} color={theme.text} />}
+            </TouchableOpacity>
 
-        {/* Input: Neckline */}
-        <Text style={[styles.sectionLabel, { color: theme.text }]}>Neckline</Text>
-        <RNView style={styles.chipRow}>
-          {NECKLINES.map((n) => {
-            const isSelected = neckline === n;
-            return (
-              <TouchableOpacity
-                key={n}
-                onPress={() => setNeckline(n)}
-                style={[
-                  styles.optionChip,
-                  {
-                    backgroundColor: isSelected ? theme.tint : theme.card,
-                    borderColor: isSelected ? theme.tint : theme.border,
-                  }
-                ]}
-              >
-                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
-                <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
-                  {n}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </RNView>
+            {!collapsed.ethnic && (
+              <View style={[styles.collapsibleContent, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                <StyledDropdown label="Embellishment / Craft" value={embellishment} options={EMBELLISHMENTS} onChange={(val) => setEmbellishment(val as Embellishment)} />
+                <StyledDropdown label="Pattern" value={pattern} options={PATTERNS} onChange={(val) => setPattern(val as Pattern)} />
+              </View>
+            )}
+          </>
+        )}
 
-        {/* Input: Sleeve */}
-        <Text style={[styles.sectionLabel, { color: theme.text }]}>Sleeve</Text>
-        <RNView style={styles.chipRow}>
-          {SLEEVES.map((s) => {
-            const isSelected = sleeve === s;
-            return (
-              <TouchableOpacity
-                key={s}
-                onPress={() => setSleeve(s)}
-                style={[
-                  styles.optionChip,
-                  {
-                    backgroundColor: isSelected ? theme.tint : theme.card,
-                    borderColor: isSelected ? theme.tint : theme.border,
-                  }
-                ]}
-              >
-                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
-                <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
-                  {s}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </RNView>
+        {/* Section 6: Occasions & Season (collapsed by default) */}
+        <TouchableOpacity 
+          style={[styles.collapsibleHeader, { borderBottomColor: theme.border }]} 
+          onPress={() => toggleSection('occasions')}
+        >
+          <Text style={[styles.collapsibleTitle, { color: theme.text }]}>Occasion & Season</Text>
+          {collapsed.occasions ? <ChevronDown size={20} color={theme.text} /> : <ChevronUp size={20} color={theme.text} />}
+        </TouchableOpacity>
 
-        {/* Input: Season */}
-        <Text style={[styles.sectionLabel, { color: theme.text }]}>Season</Text>
-        <RNView style={styles.chipRow}>
-          {SEASONS.map((s) => {
-            const isSelected = season === s;
-            return (
-              <TouchableOpacity
-                key={s}
-                onPress={() => setSeason(s)}
-                style={[
-                  styles.optionChip,
-                  {
-                    backgroundColor: isSelected ? theme.tint : theme.card,
-                    borderColor: isSelected ? theme.tint : theme.border,
-                  }
-                ]}
-              >
-                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
-                <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
-                  {s}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </RNView>
+        {!collapsed.occasions && (
+          <View style={[styles.collapsibleContent, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Text style={[styles.fieldLabel, { color: theme.text }]}>Season</Text>
+            <RNView style={styles.chipRow}>
+              {SEASONS.map((s) => {
+                const isSelected = season === s;
+                return (
+                  <TouchableOpacity
+                    key={s}
+                    onPress={() => setSeason(s)}
+                    style={[
+                      styles.optionChip,
+                      {
+                        backgroundColor: isSelected ? theme.tint : 'transparent',
+                        borderColor: isSelected ? theme.tint : theme.border,
+                      }
+                    ]}
+                  >
+                    {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
+                    <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
+                      {s}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </RNView>
 
-        {/* Input: Occasions (Multi-select) */}
-        <Text style={[styles.sectionLabel, { color: theme.text }]}>Occasions (Multi-select)</Text>
-        <RNView style={styles.chipRow}>
-          {INDIAN_OCCASIONS.map((occ) => {
-            const isSelected = selectedOccasions.includes(occ);
-            return (
-              <TouchableOpacity
-                key={occ}
-                onPress={() => toggleOccasion(occ)}
-                style={[
-                  styles.optionChip,
-                  {
-                    backgroundColor: isSelected ? theme.tint : theme.card,
-                    borderColor: isSelected ? theme.tint : theme.border,
-                  }
-                ]}
-              >
-                {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
-                <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
-                  {occ}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </RNView>
+            <Text style={[styles.fieldLabel, { color: theme.text, marginTop: 14 }]}>Suitable Occasions (Multi-select)</Text>
+            <RNView style={styles.chipRow}>
+              {INDIAN_OCCASIONS.map((occ) => {
+                const isSelected = selectedOccasions.includes(occ);
+                return (
+                  <TouchableOpacity
+                    key={occ}
+                    onPress={() => toggleOccasion(occ)}
+                    style={[
+                      styles.optionChip,
+                      {
+                        backgroundColor: isSelected ? theme.tint : 'transparent',
+                        borderColor: isSelected ? theme.tint : theme.border,
+                        marginBottom: 4,
+                      }
+                    ]}
+                  >
+                    {isSelected && <Check size={12} color="#FFFFFF" style={{ marginRight: 4 }} />}
+                    <Text style={[styles.optionText, { color: isSelected ? '#FFFFFF' : theme.text }]}>
+                      {occ}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </RNView>
+          </View>
+        )}
 
-        {/* Input: Tags */}
-        <Text style={[styles.sectionLabel, { color: theme.text }]}>Tags (Comma Separated)</Text>
+        {/* Section 7: Tags (always visible at bottom) */}
+        <Text style={[styles.sectionLabel, { color: theme.text, marginTop: 24 }]}>Tags (Comma Separated)</Text>
         <RNView style={[styles.tagsInputWrapper, { backgroundColor: theme.card, borderColor: theme.border, opacity: loading ? 0.6 : 1 }]}>
           <Tag size={16} color={theme.tabIconDefault} style={{ marginRight: 8 }} />
           <TextInput
@@ -564,6 +507,14 @@ export default function UploadScreen() {
           <Text style={styles.submitBtnText}>{loading ? 'Saving & Uploading...' : 'Add to Closet'}</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Color Swatch Picker Modal */}
+      <ColorPalettePicker 
+        visible={colorPickerVisible}
+        selectedColors={selectedColors}
+        onChange={setSelectedColors}
+        onClose={() => setColorPickerVisible(false)}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -575,7 +526,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingTop: Platform.OS === 'ios' ? 40 : 20,
-    paddingBottom: 40,
+    paddingBottom: 60,
   },
   headerRow: {
     flexDirection: 'row',
@@ -654,17 +605,27 @@ const styles = StyleSheet.create({
     width: 1,
     height: 60,
   },
+  basicsContainer: {
+    backgroundColor: 'transparent',
+  },
   sectionLabel: {
     fontSize: 14,
     fontWeight: '700',
     marginTop: 16,
     marginBottom: 10,
   },
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 8,
+    opacity: 0.8,
+  },
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginBottom: 8,
+    marginBottom: 12,
+    backgroundColor: 'transparent',
   },
   optionChip: {
     flexDirection: 'row',
@@ -678,10 +639,62 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
-  colorIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+  colorPickerContainer: {
+    backgroundColor: 'transparent',
+  },
+  swatchSelectorButton: {
+    height: 52,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  swatchSelectorLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  selectedSwatchesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+    gap: 4,
+  },
+  selectedSwatchDotPreview: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  rainbowDot: {
+    backgroundColor: 'red',
+  },
+  swatchBtnText: {
+    fontSize: 15,
+    marginLeft: 6,
+  },
+  collapsibleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    marginTop: 12,
+  },
+  collapsibleTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  collapsibleContent: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    marginTop: 12,
   },
   tagsInputWrapper: {
     flexDirection: 'row',

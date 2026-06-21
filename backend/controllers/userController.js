@@ -16,7 +16,17 @@ const formatProfile = (userRow) => {
     coveragePreference: userRow.coverage_preference,
     occasionFrequency: userRow.occasion_frequency,
     colorComfort: userRow.color_comfort,
-    createdAt: userRow.created_at
+    createdAt: userRow.created_at,
+    ageRange: userRow.age_range,
+    topSize: userRow.top_size,
+    bottomSize: userRow.bottom_size,
+    braSize: userRow.bra_size,
+    shoeSize: userRow.shoe_size,
+    comfortZones: userRow.comfort_zones || [],
+    city: userRow.city,
+    budgetTier: userRow.budget_tier,
+    jewelryTypes: userRow.jewelry_types || [],
+    avoidList: userRow.avoid_list || []
   };
 };
 
@@ -29,7 +39,7 @@ exports.getProfile = async (req, res, next) => {
     const userId = req.user.id; // populated by authenticateToken middleware
 
     const result = await db.query(
-      'SELECT id, email, name, height, body_shape, skin_tone, undertone, style_pref, coverage_preference, occasion_frequency, color_comfort, created_at FROM users WHERE id = $1',
+      'SELECT id, email, name, height, body_shape, skin_tone, undertone, style_pref, coverage_preference, occasion_frequency, color_comfort, created_at, age_range, top_size, bottom_size, bra_size, shoe_size, comfort_zones, city, budget_tier, jewelry_types, avoid_list FROM users WHERE id = $1',
       [userId]
     );
 
@@ -59,7 +69,17 @@ exports.updateProfile = async (req, res, next) => {
       stylePreference,
       coveragePreference,
       occasionFrequency,
-      colorComfort
+      colorComfort,
+      ageRange,
+      topSize,
+      bottomSize,
+      braSize,
+      shoeSize,
+      comfortZones,
+      city,
+      budgetTier,
+      jewelryTypes,
+      avoidList
     } = req.body;
 
     // Build standard Postgres direct SQL query for update
@@ -74,9 +94,19 @@ exports.updateProfile = async (req, res, next) => {
         style_pref = COALESCE($6, style_pref),
         coverage_preference = COALESCE($7, coverage_preference),
         occasion_frequency = COALESCE($8, occasion_frequency),
-        color_comfort = COALESCE($9, color_comfort)
-      WHERE id = $10
-      RETURNING id, email, name, height, body_shape, skin_tone, undertone, style_pref, coverage_preference, occasion_frequency, color_comfort, created_at;
+        color_comfort = COALESCE($9, color_comfort),
+        age_range = COALESCE($10, age_range),
+        top_size = COALESCE($11, top_size),
+        bottom_size = COALESCE($12, bottom_size),
+        bra_size = COALESCE($13, bra_size),
+        shoe_size = COALESCE($14, shoe_size),
+        comfort_zones = COALESCE($15, comfort_zones),
+        city = COALESCE($16, city),
+        budget_tier = COALESCE($17, budget_tier),
+        jewelry_types = COALESCE($18, jewelry_types),
+        avoid_list = COALESCE($19, avoid_list)
+      WHERE id = $20
+      RETURNING id, email, name, height, body_shape, skin_tone, undertone, style_pref, coverage_preference, occasion_frequency, color_comfort, created_at, age_range, top_size, bottom_size, bra_size, shoe_size, comfort_zones, city, budget_tier, jewelry_types, avoid_list;
     `;
 
     const values = [
@@ -89,6 +119,16 @@ exports.updateProfile = async (req, res, next) => {
       coveragePreference,
       occasionFrequency,
       colorComfort,
+      ageRange,
+      topSize,
+      bottomSize,
+      braSize,
+      shoeSize,
+      comfortZones,
+      city,
+      budgetTier,
+      jewelryTypes,
+      avoidList,
       userId
     ];
 

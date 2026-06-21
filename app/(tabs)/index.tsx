@@ -8,9 +8,15 @@ import { useAppStore } from '../../store';
 import { useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('window');
+import { COLOR_PALETTE } from '@/constants/ColorPalette';
+
 const COLUMN_WIDTH = (width - 48) / 2;
 
-const CATEGORIES = ['All', 'Tops', 'Bottoms', 'Dresses', 'Ethnic', 'Outers', 'Shoes'];
+const CATEGORIES = [
+  'All', 'Tops', 'Bottoms', 'Dresses', 'Kurtas & Tunics', 'Sarees',
+  'Lehengas', 'Suits & Sets', 'Dupattas & Stoles', 'Ethnic Bottoms',
+  'Outers', 'Shoes', 'Accessories'
+];
 
 export default function WardrobeScreen() {
   const colorScheme = useColorScheme();
@@ -19,11 +25,16 @@ export default function WardrobeScreen() {
   
   // Load dynamic items list from store
   const wardrobeItems = useAppStore((state) => state.wardrobeItems);
+  const swipeHistory = useAppStore((state) => state.swipeHistory);
+  const likedCount = swipeHistory.filter((item) => item.direction === 'like').length;
+  
   const [selectedCategory, setSelectedCategory] = useState('All');
 
   const filteredItems = selectedCategory === 'All' 
     ? wardrobeItems 
     : wardrobeItems.filter(item => item.category === selectedCategory);
+
+  const uniqueCategoriesCount = new Set(wardrobeItems.map(item => item.category)).size;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -35,13 +46,13 @@ export default function WardrobeScreen() {
         </View>
         <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
         <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: theme.tint }]}>6</Text>
+          <Text style={[styles.statValue, { color: theme.tint }]}>{uniqueCategoriesCount}</Text>
           <Text style={[styles.statLabel, { color: theme.tabIconDefault }]}>Categories</Text>
         </View>
         <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
         <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: theme.accent }]}>85%</Text>
-          <Text style={[styles.statLabel, { color: theme.tabIconDefault }]}>Wardrobe Fit</Text>
+          <Text style={[styles.statValue, { color: theme.accent }]}>{likedCount}</Text>
+          <Text style={[styles.statLabel, { color: theme.tabIconDefault }]}>Liked Looks</Text>
         </View>
       </View>
 
@@ -105,25 +116,44 @@ export default function WardrobeScreen() {
           columnWrapperStyle={styles.gridRow}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.gridContainer}
-          renderItem={({ item }) => (
-            <TouchableOpacity 
-              style={[styles.itemCard, { backgroundColor: theme.card, borderColor: theme.border }]}
-              activeOpacity={0.9}
-            >
-              <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
-              <View style={styles.itemInfo}>
-                <Text style={[styles.itemTitle, { color: theme.text }]} numberOfLines={1}>
-                  {`${item.color} ${item.category}`}
-                </Text>
-                <View style={styles.tagRow}>
-                  <Text style={[styles.itemCategory, { color: theme.tabIconDefault }]}>
-                    {item.category}
+          renderItem={({ item }) => {
+            const itemColors = item.colors || (item.color ? [item.color] : []);
+            const colorTitle = itemColors.length > 0 ? itemColors.join(' & ') : 'Garment';
+            return (
+              <TouchableOpacity 
+                style={[styles.itemCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+                activeOpacity={0.9}
+              >
+                <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
+                <View style={styles.itemInfo}>
+                  <Text style={[styles.itemTitle, { color: theme.text }]} numberOfLines={1}>
+                    {`${colorTitle} ${item.category}`}
                   </Text>
-                  <View style={[styles.colorDot, { backgroundColor: item.color.toLowerCase() === 'white' || item.color.toLowerCase() === 'cream' ? '#D1D5DB' : item.color.toLowerCase() }]} />
+                  <View style={styles.tagRow}>
+                    <Text style={[styles.itemCategory, { color: theme.tabIconDefault }]} numberOfLines={1} style={{ flex: 1, marginRight: 4 }}>
+                      {item.category}
+                    </Text>
+                    <RNView style={styles.colorDotRow}>
+                      {itemColors.slice(0, 3).map((col, idx) => {
+                        const swatch = COLOR_PALETTE.find(c => c.name === col);
+                        const isRainbow = swatch?.hex === '#RAINBOW';
+                        return (
+                          <RNView 
+                            key={idx} 
+                            style={[
+                              styles.colorDot, 
+                              isRainbow ? styles.rainbowDot : { backgroundColor: swatch?.hex || '#ccc' },
+                              col === 'White' && { borderWidth: 1, borderColor: '#eee' }
+                            ]} 
+                          />
+                        );
+                      })}
+                    </RNView>
+                  </View>
                 </View>
-              </View>
-            </TouchableOpacity>
-          )}
+              </TouchableOpacity>
+            );
+          }}
         />
       ) : (
         <View style={styles.emptyContainer}>
@@ -258,6 +288,15 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
+  },
+  colorDotRow: {
+    flexDirection: 'row',
+    gap: 2,
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  rainbowDot: {
+    backgroundColor: 'red',
   },
   emptyContainer: {
     flex: 1,

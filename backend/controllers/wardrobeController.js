@@ -66,6 +66,7 @@ exports.addWardrobeItem = async (req, res, next) => {
     const {
       category,
       color,
+      colors,
       style,
       fit,
       fabric,
@@ -75,7 +76,12 @@ exports.addWardrobeItem = async (req, res, next) => {
       sleeve,
       season,
       occasions,
-      tags
+      tags,
+      subType,
+      waistPosition,
+      structure,
+      embellishment,
+      opacity
     } = req.body;
 
     // 1. Ensure an image file was uploaded
@@ -83,8 +89,8 @@ exports.addWardrobeItem = async (req, res, next) => {
       return res.status(400).json({ error: 'An image file is required to add a wardrobe item.' });
     }
 
-    if (!category || !color || !style) {
-      return res.status(400).json({ error: 'Category, color, and style are required fields.' });
+    if (!category || !style) {
+      return res.status(400).json({ error: 'Category and style are required fields.' });
     }
 
     // 2. Upload the file buffer to Cloudinary
@@ -93,16 +99,22 @@ exports.addWardrobeItem = async (req, res, next) => {
     const imageUrl = uploadResult.secure_url;
     console.log('[Wardrobe] Image uploaded. Cloudinary URL:', imageUrl);
 
-    // 3. Parse occasions and tags arrays
+    // 3. Parse occasions, tags, and colors arrays
+    let parsedColors = parseArrayField(colors);
+    if (parsedColors.length === 0 && color) {
+      parsedColors = [color];
+    }
+    const primaryColor = parsedColors[0] || 'White';
+
     const parsedOccasions = parseArrayField(occasions);
     const parsedTags = parseArrayField(tags);
 
     // 4. Insert wardrobe item record into PostgreSQL database
     const insertQuery = `
       INSERT INTO wardrobe_items (
-        user_id, image_url, category, color, style, fit, fabric, length, pattern, neckline, sleeve, season, occasions, tags
+        user_id, image_url, category, color, colors, style, fit, fabric, length, pattern, neckline, sleeve, season, occasions, tags, sub_type, waist_position, structure, embellishment, opacity
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
       RETURNING *;
     `;
 
@@ -110,7 +122,8 @@ exports.addWardrobeItem = async (req, res, next) => {
       userId,
       imageUrl,
       category,
-      color,
+      primaryColor,
+      parsedColors,
       style,
       fit || 'Regular',
       fabric || 'Cotton',
@@ -120,7 +133,12 @@ exports.addWardrobeItem = async (req, res, next) => {
       sleeve || 'Not Applicable',
       season || 'All-season',
       parsedOccasions,
-      parsedTags
+      parsedTags,
+      subType || null,
+      waistPosition || null,
+      structure || null,
+      embellishment || null,
+      opacity || null
     ];
 
     const result = await db.query(insertQuery, values);
@@ -168,6 +186,7 @@ exports.updateWardrobeItem = async (req, res, next) => {
     const {
       category,
       color,
+      colors,
       style,
       fit,
       fabric,
@@ -177,7 +196,12 @@ exports.updateWardrobeItem = async (req, res, next) => {
       sleeve,
       season,
       occasions,
-      tags
+      tags,
+      subType,
+      waistPosition,
+      structure,
+      embellishment,
+      opacity
     } = req.body;
 
     // Verify item ownership before updating
@@ -191,6 +215,15 @@ exports.updateWardrobeItem = async (req, res, next) => {
     }
 
     // Parse arrays if provided
+    let parsedColors = colors ? parseArrayField(colors) : null;
+    let primaryColor = null;
+    if (parsedColors && parsedColors.length > 0) {
+      primaryColor = parsedColors[0];
+    } else if (color) {
+      primaryColor = color;
+      parsedColors = [color];
+    }
+
     const parsedOccasions = occasions ? parseArrayField(occasions) : null;
     const parsedTags = tags ? parseArrayField(tags) : null;
 
@@ -199,24 +232,30 @@ exports.updateWardrobeItem = async (req, res, next) => {
       SET
         category = COALESCE($1, category),
         color = COALESCE($2, color),
-        style = COALESCE($3, style),
-        fit = COALESCE($4, fit),
-        fabric = COALESCE($5, fabric),
-        length = COALESCE($6, length),
-        pattern = COALESCE($7, pattern),
-        neckline = COALESCE($8, neckline),
-        sleeve = COALESCE($9, sleeve),
-        season = COALESCE($10, season),
-        occasions = COALESCE($11, occasions),
-        tags = COALESCE($12, tags)
-      WHERE id = $13 AND user_id = $14
+        colors = COALESCE($3, colors),
+        style = COALESCE($4, style),
+        fit = COALESCE($5, fit),
+        fabric = COALESCE($6, fabric),
+        length = COALESCE($7, length),
+        pattern = COALESCE($8, pattern),
+        neckline = COALESCE($9, neckline),
+        sleeve = COALESCE($10, sleeve),
+        season = COALESCE($11, season),
+        occasions = COALESCE($12, occasions),
+        tags = COALESCE($13, tags),
+        sub_type = COALESCE($14, sub_type),
+        waist_position = COALESCE($15, waist_position),
+        structure = COALESCE($16, structure),
+        embellishment = COALESCE($17, embellishment),
+        opacity = COALESCE($18, opacity)
+      WHERE id = $19 AND user_id = $20
       RETURNING *;
     `;
 
-    // If param is null/undefined in body, we keep existing value using COALESCE
     const values = [
       category || null,
-      color || null,
+      primaryColor || null,
+      parsedColors || null,
       style || null,
       fit || null,
       fabric || null,
@@ -225,8 +264,13 @@ exports.updateWardrobeItem = async (req, res, next) => {
       neckline || null,
       sleeve || null,
       season || null,
-      parsedOccasions,
-      parsedTags,
+      parsedOccasions || null,
+      parsedTags || null,
+      subType || null,
+      waistPosition || null,
+      structure || null,
+      embellishment || null,
+      opacity || null,
       itemId,
       userId
     ];

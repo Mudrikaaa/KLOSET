@@ -5,16 +5,60 @@ const db = require('../config/db');
  * Prevents casual outfits from being suggested for formal/festive events.
  */
 const occasionToFormality = {
-  'Brunch / Cafe': ['Casual', 'Smart Casual'],
+  // Festive & Family
+  'Diwali Party (Family)': ['Festive', 'Semi-formal'],
+  'Diwali Party (Friends)': ['Festive', 'Party', 'Smart Casual'],
+  'Holi': ['Casual'],
+  'Navratri / Garba': ['Festive', 'Party'],
+  'Eid': ['Festive', 'Semi-formal', 'Formal'],
+  'Regional Festival': ['Festive', 'Semi-formal'],
+  'Pooja / Temple Visit': ['Festive', 'Semi-formal'],
+
+  // Weddings
+  'Mehendi Function': ['Festive', 'Party'],
+  'Sangeet Night': ['Party', 'Festive'],
+  'Wedding (Close Family)': ['Formal', 'Festive'],
+  'Wedding (Guest)': ['Festive', 'Semi-formal'],
+  'Reception': ['Formal', 'Party'],
+  'Cocktail / Pre-wedding': ['Party', 'Semi-formal'],
+  'Engagement Ceremony': ['Semi-formal', 'Festive'],
+  'Roka / Sagai': ['Semi-formal', 'Festive'],
+
+  // College
+  'First Day of College': ['Smart Casual', 'Casual'],
+  'College Farewell': ['Semi-formal', 'Smart Casual'],
+  'College Fest (Day)': ['Casual', 'Smart Casual'],
+  'College Fest (Night)': ['Party', 'Smart Casual'],
+  'College Trip': ['Casual'],
+  'Internship (Startup)': ['Smart Casual', 'Casual'],
+  'Internship (Corporate)': ['Smart Casual', 'Semi-formal'],
+
+  // Professional
+  'Job Interview (Tech)': ['Smart Casual', 'Semi-formal'],
+  'Job Interview (Corporate)': ['Formal', 'Semi-formal'],
+  'Office (Startup)': ['Smart Casual', 'Casual'],
+  'Office (Formal)': ['Formal', 'Semi-formal'],
+  'Client Meeting': ['Semi-formal', 'Formal'],
+
+  // Social
   'Casual Outing': ['Casual', 'Smart Casual'],
   'Mall / Shopping Day': ['Casual', 'Smart Casual'],
-  'Office (Startup)': ['Smart Casual', 'Semi-formal'],
-  'Dinner Date': ['Smart Casual', 'Semi-formal', 'Party'],
-  'Night Out': ['Smart Casual', 'Party'],
-  'Diwali Party (Family)': ['Festive', 'Party', 'Semi-formal'],
-  'Regional Festival': ['Festive', 'Formal'],
-  'Wedding (Close Family)': ['Formal', 'Festive'],
-  'Cocktail / Pre-wedding': ['Formal', 'Festive', 'Party']
+  'Brunch / Cafe': ['Smart Casual', 'Casual'],
+  'Dinner Date': ['Smart Casual', 'Semi-formal'],
+  'First Date': ['Smart Casual', 'Semi-formal'],
+  'Night Out': ['Party', 'Smart Casual'],
+  'House Party': ['Smart Casual', 'Casual', 'Party'],
+
+  // Special
+  'My Birthday': ['Party', 'Smart Casual', 'Festive'],
+  "Friend's Birthday": ['Party', 'Smart Casual'],
+  'Travel Day': ['Casual'],
+  'Airport / Travel Look': ['Smart Casual', 'Casual'],
+  'Gym / Workout': ['Casual'],
+  'Beach / Pool Day': ['Casual'],
+  'WFH / Video Call': ['Smart Casual', 'Casual'],
+  'Anniversary Dinner': ['Semi-formal', 'Formal'],
+  'Baby Shower / Godh Bharai': ['Festive', 'Smart Casual'],
 };
 
 /**
@@ -48,6 +92,23 @@ const getAllowedFormalities = (occasion) => {
 
   // Default fallback
   return ['Casual', 'Smart Casual'];
+};
+
+/**
+ * Returns colors that should be AVOIDED for this occasion in Indian cultural context.
+ */
+const getOccasionColorBlacklist = (occasion) => {
+  const occLower = (occasion || '').toLowerCase();
+
+  if (occLower.includes('wedding') && !occLower.includes('cocktail')) {
+    // Don't suggest red/scarlet/crimson to wedding guests — it's traditionally the bride's color
+    return ['Red', 'Scarlet', 'Crimson'];
+  }
+  if (occLower.includes('pooja') || occLower.includes('temple')) {
+    // Avoid black for religious occasions
+    return ['Black'];
+  }
+  return [];
 };
 
 /**
@@ -121,7 +182,7 @@ exports.getSuggestions = async (req, res, next) => {
 
     // 1. Fetch current user style profile
     const userResult = await db.query(
-      'SELECT height, body_shape, skin_tone, undertone, style_pref, coverage_preference FROM users WHERE id = $1',
+      'SELECT height, body_shape, skin_tone, undertone, style_pref, coverage_preference, color_comfort FROM users WHERE id = $1',
       [userId]
     );
 
@@ -134,33 +195,41 @@ exports.getSuggestions = async (req, res, next) => {
     // 2. Map the occasion to allowed formalities (Hard Filter)
     const allowedFormalities = getAllowedFormalities(occasion);
 
-    // 3. Build and execute recommendation query
-    // - Hard Filters: 
-    //    1. Occasion matches requested occasion ($1)
-    //    2. Formality matches allowed formalities ($6)
-    //    3. Season matches requested season ($7) or is 'All-season'
-    // - Scoring weights:
-    //    1. Body type matches: +3
-    //    2. Skin tone matches: +3
-    //    3. Style matches: +2
-    //    4. Coverage matches: +1
+    // 3. Get blacklisted colors for occasion
+    const colorBlacklist = getOccasionColorBlacklist(occasion);
+
+    // 4. Build and execute recommendation query
     const suggestionsQuery = `
       SELECT *,
         (
           CASE WHEN body_types @> ARRAY[$2]::TEXT[] THEN 3 ELSE 0 END +
           CASE WHEN skin_tones @> ARRAY[$3]::TEXT[] THEN 3 ELSE 0 END +
-          CASE WHEN style = $4 THEN 2 ELSE 0 END +
           CASE WHEN (
-            ($5 = 'Modest' AND coverage = 'Conservative') OR
-            ($5 = 'Moderate' AND coverage = 'Moderate') OR
-            ($5 = 'Open' AND coverage = 'Minimal')
-          ) THEN 1 ELSE 0 END
+            ($8 = 'Warm' AND color_palette && ARRAY['Gold', 'Mustard', 'Rust', 'Coral', 'Peach', 'Olive', 'Terracotta', 'Camel', 'Cream']::TEXT[]) OR
+            ($8 = 'Cool' AND color_palette && ARRAY['Silver', 'Lavender', 'Navy', 'Emerald', 'Burgundy', 'Ice Blue', 'Plum', 'Wine', 'Cobalt']::TEXT[]) OR
+            ($8 = 'Neutral')
+          ) THEN 2 ELSE 0 END +
+          CASE WHEN style = $4 THEN 2 ELSE 0 END
         ) as match_score
       FROM outfit_catalog
       WHERE 
         $1 = ANY(occasions)
         AND ($6::TEXT[] IS NULL OR formality = ANY($6))
         AND ($7::TEXT IS NULL OR season = $7 OR season = 'All-season')
+        AND (
+          ($5 = 'Open')
+          OR ($5 = 'Moderate' AND coverage IN ('Moderate', 'Conservative'))
+          OR ($5 = 'Modest' AND coverage = 'Conservative')
+        )
+        AND (
+          ($9 = 'Bold and Colorful')
+          OR ($9 = 'Some Color')
+          OR ($9 = 'Neutrals Only' AND color_palette <@ ARRAY[
+            'White', 'Black', 'Grey', 'Beige', 'Navy', 'Cream', 'Ivory',
+            'Camel', 'Taupe', 'Charcoal', 'Khaki', 'Olive', 'Brown'
+          ]::TEXT[])
+        )
+        AND NOT (color_palette && $10::TEXT[])
       ORDER BY match_score DESC, created_at DESC;
     `;
 
@@ -171,12 +240,15 @@ exports.getSuggestions = async (req, res, next) => {
       user.style_pref || 'Fusion',
       user.coverage_preference || 'Moderate',
       allowedFormalities,
-      season || null
+      season || null,
+      user.undertone || 'Neutral',
+      user.color_comfort || 'Some Color',
+      colorBlacklist
     ];
 
     const result = await db.query(suggestionsQuery, values);
 
-    // 4. Return matching outfits, formatted correctly
+    // 5. Return matching outfits, formatted correctly
     res.status(200).json(result.rows.map(formatOutfit));
 
   } catch (err) {

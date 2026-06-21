@@ -1,27 +1,36 @@
-import React, { useState } from 'react';
-import { StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, ActivityIndicator, View as RNView } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { Sparkles, Stars, Briefcase, GraduationCap, Heart, Gift, Check } from 'lucide-react-native';
+import { api } from '../../lib';
+import { Outfit } from '../../types';
 
 const { width } = Dimensions.get('window');
 
 const OCCASIONS = [
+  // Festive & Family
   { id: 'Diwali Party (Family)', name: 'Diwali (Family)', category: 'Festive & Family', icon: Sparkles, color: '#F59E0B' },
   { id: 'Diwali Party (Friends)', name: 'Diwali (Friends)', category: 'Festive & Family', icon: Sparkles, color: '#F59E0B' },
   { id: 'Holi', name: 'Holi', category: 'Festive & Family', icon: Sparkles, color: '#F59E0B' },
   { id: 'Navratri / Garba', name: 'Navratri / Garba', category: 'Festive & Family', icon: Sparkles, color: '#F59E0B' },
   { id: 'Eid', name: 'Eid', category: 'Festive & Family', icon: Sparkles, color: '#F59E0B' },
   { id: 'Regional Festival', name: 'Regional Fest', category: 'Festive & Family', icon: Sparkles, color: '#F59E0B' },
+  { id: 'Pooja / Temple Visit', name: 'Pooja/Temple', category: 'Festive & Family', icon: Sparkles, color: '#F59E0B' },
+  { id: 'Baby Shower / Godh Bharai', name: 'Baby Shower', category: 'Festive & Family', icon: Sparkles, color: '#F59E0B' },
 
+  // Weddings & Functions
   { id: 'Mehendi Function', name: 'Mehendi', category: 'Weddings & Functions', icon: Stars, color: '#EC4899' },
   { id: 'Sangeet Night', name: 'Sangeet Night', category: 'Weddings & Functions', icon: Stars, color: '#EC4899' },
   { id: 'Wedding (Close Family)', name: 'Wedding (Family)', category: 'Weddings & Functions', icon: Stars, color: '#EC4899' },
   { id: 'Wedding (Guest)', name: 'Wedding (Guest)', category: 'Weddings & Functions', icon: Stars, color: '#EC4899' },
   { id: 'Reception', name: 'Reception', category: 'Weddings & Functions', icon: Stars, color: '#EC4899' },
   { id: 'Cocktail / Pre-wedding', name: 'Cocktail Night', category: 'Weddings & Functions', icon: Stars, color: '#EC4899' },
+  { id: 'Engagement Ceremony', name: 'Engagement', category: 'Weddings & Functions', icon: Stars, color: '#EC4899' },
+  { id: 'Roka / Sagai', name: 'Roka/Sagai', category: 'Weddings & Functions', icon: Stars, color: '#EC4899' },
 
+  // College
   { id: 'First Day of College', name: 'First Day College', category: 'College', icon: GraduationCap, color: '#10B981' },
   { id: 'College Farewell', name: 'Farewell', category: 'College', icon: GraduationCap, color: '#10B981' },
   { id: 'College Fest (Day)', name: 'Fest (Day)', category: 'College', icon: GraduationCap, color: '#10B981' },
@@ -30,122 +39,59 @@ const OCCASIONS = [
   { id: 'Internship (Startup)', name: 'Intern (Startup)', category: 'College', icon: GraduationCap, color: '#10B981' },
   { id: 'Internship (Corporate)', name: 'Intern (Corp)', category: 'College', icon: GraduationCap, color: '#10B981' },
 
+  // Professional
   { id: 'Job Interview (Tech)', name: 'Interview (Tech)', category: 'Professional', icon: Briefcase, color: '#6366F1' },
   { id: 'Job Interview (Corporate)', name: 'Interview (Corp)', category: 'Professional', icon: Briefcase, color: '#6366F1' },
   { id: 'Office (Startup)', name: 'Office (Startup)', category: 'Professional', icon: Briefcase, color: '#6366F1' },
   { id: 'Office (Formal)', name: 'Office (Formal)', category: 'Professional', icon: Briefcase, color: '#6366F1' },
   { id: 'Client Meeting', name: 'Client Meeting', category: 'Professional', icon: Briefcase, color: '#6366F1' },
+  { id: 'WFH / Video Call', name: 'WFH Call', category: 'Professional', icon: Briefcase, color: '#6366F1' },
 
+  // Social
   { id: 'Casual Outing', name: 'Casual Outing', category: 'Social', icon: Heart, color: '#3B82F6' },
   { id: 'Mall / Shopping Day', name: 'Shopping Day', category: 'Social', icon: Heart, color: '#3B82F6' },
   { id: 'Brunch / Cafe', name: 'Brunch / Cafe', category: 'Social', icon: Heart, color: '#3B82F6' },
   { id: 'Dinner Date', name: 'Dinner Date', category: 'Social', icon: Heart, color: '#3B82F6' },
   { id: 'First Date', name: 'First Date', category: 'Social', icon: Heart, color: '#3B82F6' },
   { id: 'Night Out', name: 'Night Out', category: 'Social', icon: Heart, color: '#3B82F6' },
+  { id: 'House Party', name: 'House Party', category: 'Social', icon: Heart, color: '#3B82F6' },
+  { id: 'Gym / Workout', name: 'Gym/Workout', category: 'Social', icon: Heart, color: '#3B82F6' },
+  { id: 'Beach / Pool Day', name: 'Beach Day', category: 'Social', icon: Heart, color: '#3B82F6' },
 
+  // Special
   { id: 'My Birthday', name: 'My Birthday', category: 'Special', icon: Gift, color: '#8B5CF6' },
   { id: "Friend's Birthday", name: "Friend's Bday", category: 'Special', icon: Gift, color: '#8B5CF6' },
   { id: 'Travel Day', name: 'Travel Day', category: 'Special', icon: Gift, color: '#8B5CF6' },
+  { id: 'Airport / Travel Look', name: 'Airport Look', category: 'Special', icon: Gift, color: '#8B5CF6' },
+  { id: 'Hill Station Trip', name: 'Hill Station', category: 'Special', icon: Gift, color: '#8B5CF6' },
+  { id: 'Heritage City Sightseeing', name: 'Sightseeing', category: 'Special', icon: Gift, color: '#8B5CF6' },
+  { id: 'Graduation Day', name: 'Graduation', category: 'Special', icon: Gift, color: '#8B5CF6' },
+  { id: 'Award Ceremony / Convocation', name: 'Convocation', category: 'Special', icon: Gift, color: '#8B5CF6' },
+  { id: 'Anniversary Dinner', name: 'Anniversary', category: 'Special', icon: Gift, color: '#8B5CF6' },
 ];
-
-const MOCK_MATCHES: Record<string, any[]> = {
-  'Diwali Party (Family)': [
-    {
-      id: 'm4',
-      title: 'Classic Festive Kurta Set',
-      confidence: '92% Match',
-      desc: 'Traditional elements matching standard modern bottom-wear. Ideal for family gatherings.',
-      formality: 'Festive',
-      coverage: 'Conservative',
-      season: 'All-season',
-      colorPalette: ['Maroon', 'Beige'],
-      heights: ['Average', 'Tall'],
-      bodyShapes: ['Hourglass', 'Pear', 'Apple', 'Rectangle'],
-      items: [
-        { name: 'Royal Kurta', image: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=400&auto=format&fit=crop&q=60' },
-        { name: 'Beige Chinos', image: 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=400&auto=format&fit=crop&q=60' }
-      ]
-    }
-  ],
-  'Sangeet Night': [
-    {
-      id: 'm2',
-      title: 'Premium Handloom Sherwani Set',
-      confidence: '98% Match',
-      desc: 'Perfect for wedding ceremonies. Complements wheatish and dusky skin tones beautifully.',
-      formality: 'Festive',
-      coverage: 'Conservative',
-      season: 'Winter',
-      colorPalette: ['Ivory', 'Gold'],
-      heights: ['Tall', 'Average'],
-      bodyShapes: ['Athletic', 'Hourglass', 'Inverted Triangle'],
-      items: [
-        { name: 'Royal Ivory Kurta', image: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=400&auto=format&fit=crop&q=60' }
-      ]
-    }
-  ],
-  'Job Interview (Corporate)': [
-    {
-      id: 'm1',
-      title: 'Polished Professional Outfit',
-      confidence: '95% Match',
-      desc: 'Optimized for formal interviews. Exudes high structure and sharp corporate fit.',
-      formality: 'Formal',
-      coverage: 'Conservative',
-      season: 'All-season',
-      colorPalette: ['Navy', 'Beige'],
-      heights: ['Petite', 'Average', 'Tall'],
-      bodyShapes: ['Rectangle', 'Inverted Triangle', 'Hourglass'],
-      items: [
-        { name: 'Navy Formal Shirt', image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400&auto=format&fit=crop&q=60' },
-        { name: 'Relaxed Fit Chinos', image: 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=400&auto=format&fit=crop&q=60' }
-      ]
-    }
-  ],
-  'Brunch / Cafe': [
-    {
-      id: 'm5',
-      title: 'Effortless Weekend Vibe',
-      confidence: '90% Match',
-      desc: 'Minimal and comfortable layers for standard daily wear.',
-      formality: 'Casual',
-      coverage: 'Moderate',
-      season: 'Summer',
-      colorPalette: ['White', 'Indigo'],
-      heights: ['Petite', 'Average', 'Tall'],
-      bodyShapes: ['Hourglass', 'Pear', 'Apple', 'Rectangle', 'Inverted Triangle'],
-      items: [
-        { name: 'Linen Summer Shirt', image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400&auto=format&fit=crop&q=60' },
-        { name: 'Indigo Jacket', image: 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=400&auto=format&fit=crop&q=60' }
-      ]
-    }
-  ],
-  'Night Out': [
-    {
-      id: 'm3',
-      title: 'Chic Smart-Casual Look',
-      confidence: '88% Match',
-      desc: 'Elegant indigo blazer with clean lines. Professional yet relaxed.',
-      formality: 'Party',
-      coverage: 'Moderate',
-      season: 'All-season',
-      colorPalette: ['Indigo', 'Emerald'],
-      heights: ['Average', 'Tall'],
-      bodyShapes: ['Hourglass', 'Athletic', 'Rectangle'],
-      items: [
-        { name: 'Indigo Denim Jacket', image: 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=400&auto=format&fit=crop&q=60' },
-        { name: 'Emerald Dress', image: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=400&auto=format&fit=crop&q=60' }
-      ]
-    }
-  ]
-};
 
 export default function OutfitsScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme];
   const [selectedOccasion, setSelectedOccasion] = useState('Diwali Party (Family)');
+  const [suggestions, setSuggestions] = useState<Outfit[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const matches = MOCK_MATCHES[selectedOccasion] || [];
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    api.getSuggestions(selectedOccasion)
+      .then((data) => {
+        setSuggestions(data || []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('[KLOSET-DEBUG] [OutfitsScreen] Failed to fetch suggestions:', err);
+        setError(err.message || 'Failed to fetch suggestions.');
+        setLoading(false);
+      });
+  }, [selectedOccasion]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -192,56 +138,86 @@ export default function OutfitsScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.matchesScroll}>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>AI Recommendations</Text>
         
-        {matches.length > 0 ? (
-          matches.map((match: any) => (
-            <View key={match.id} style={[styles.matchCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-              {/* Top header of match card */}
-              <View style={styles.matchHeader}>
-                <Text style={[styles.matchTitle, { color: theme.text }]}>{match.title}</Text>
-                <View style={[styles.matchBadge, { backgroundColor: `${theme.accent}15` }]}>
-                  <Text style={[styles.matchBadgeText, { color: theme.accent }]}>{match.confidence}</Text>
+        {loading ? (
+          <RNView style={styles.centerContainer}>
+            <ActivityIndicator size="large" color={theme.tint} />
+            <Text style={[styles.loadingText, { color: theme.tabIconDefault, marginTop: 12 }]}>
+              Finding outfits in your closet...
+            </Text>
+          </RNView>
+        ) : error ? (
+          <RNView style={styles.centerContainer}>
+            <Text style={{ color: '#EF4444', textAlign: 'center', marginBottom: 12 }}>{error}</Text>
+            <TouchableOpacity 
+              onPress={() => {
+                setLoading(true);
+                api.getSuggestions(selectedOccasion).then(setSuggestions).catch(err => setError(err.message)).finally(() => setLoading(false));
+              }}
+              style={[styles.retryBtn, { backgroundColor: theme.tint }]}
+            >
+              <Text style={styles.retryBtnText}>Retry</Text>
+            </TouchableOpacity>
+          </RNView>
+        ) : suggestions.length > 0 ? (
+          suggestions.map((match: any) => {
+            const confidence = match.matchScore !== undefined 
+              ? `${Math.round((match.matchScore / 10) * 100)}% Match` 
+              : 'Matched';
+            
+            return (
+              <View key={match.id} style={[styles.matchCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                {/* Top header of match card */}
+                <View style={styles.matchHeader}>
+                  <Text style={[styles.matchTitle, { color: theme.text }]}>{match.title}</Text>
+                  <View style={[styles.matchBadge, { backgroundColor: `${theme.accent}15` }]}>
+                    <Text style={[styles.matchBadgeText, { color: theme.accent }]}>{confidence}</Text>
+                  </View>
                 </View>
-              </View>
 
-              {/* Description */}
-              <Text style={[styles.matchDesc, { color: theme.tabIconDefault }]}>{match.desc}</Text>
+                {/* Main styled preview image */}
+                {match.imageUrl && (
+                  <RNView style={[styles.matchImageContainer, { borderColor: theme.border }]}>
+                    <Image source={{ uri: match.imageUrl }} style={styles.matchImage} />
+                  </RNView>
+                )}
 
-              {/* Metadata row */}
-              <View style={styles.metaRow}>
-                <Text style={[styles.metaText, { color: theme.tabIconDefault }]}>
-                  Formality: <Text style={{ color: theme.text, fontWeight: '600' }}>{match.formality}</Text>
-                </Text>
-                <Text style={[styles.metaText, { color: theme.tabIconDefault }]}>
-                  Coverage: <Text style={{ color: theme.text, fontWeight: '600' }}>{match.coverage}</Text>
-                </Text>
-              </View>
-              <View style={[styles.metaRow, { marginBottom: 12 }]}>
-                <Text style={[styles.metaText, { color: theme.tabIconDefault }]}>
-                  Season: <Text style={{ color: theme.text, fontWeight: '600' }}>{match.season}</Text>
-                </Text>
-                <Text style={[styles.metaText, { color: theme.tabIconDefault }]}>
-                  Colors: <Text style={{ color: theme.text, fontWeight: '600' }}>{match.colorPalette.join(', ')}</Text>
-                </Text>
-              </View>
+                {/* Description */}
+                <Text style={[styles.matchDesc, { color: theme.tabIconDefault }]}>{match.description}</Text>
 
-              {/* Wardrobe Items involved */}
-              <View style={styles.itemsPreviewRow}>
-                {match.items.map((item: any, idx: number) => (
-                  <View key={idx} style={[styles.itemPreviewCard, { borderColor: theme.border }]}>
-                    <Image source={{ uri: item.image }} style={styles.itemPreviewImg} />
-                    <Text style={[styles.itemPreviewName, { color: theme.text }]} numberOfLines={1}>
-                      {item.name}
+                {/* Metadata row */}
+                <View style={styles.metaRow}>
+                  <Text style={[styles.metaText, { color: theme.tabIconDefault }]}>
+                    Formality: <Text style={{ color: theme.text, fontWeight: '600' }}>{match.formality}</Text>
+                  </Text>
+                  <Text style={[styles.metaText, { color: theme.tabIconDefault }]}>
+                    Coverage: <Text style={{ color: theme.text, fontWeight: '600' }}>{match.coverage}</Text>
+                  </Text>
+                </View>
+                <View style={[styles.metaRow, { marginBottom: 12 }]}>
+                  <Text style={[styles.metaText, { color: theme.tabIconDefault }]}>
+                    Season: <Text style={{ color: theme.text, fontWeight: '600' }}>{match.season}</Text>
+                  </Text>
+                  <Text style={[styles.metaText, { color: theme.tabIconDefault }]}>
+                    Colors: <Text style={{ color: theme.text, fontWeight: '600' }}>{match.colorPalette.join(', ')}</Text>
+                  </Text>
+                </View>
+
+                {match.explanation && (
+                  <View style={styles.explanationBox}>
+                    <Sparkles size={16} color={theme.accent} style={{ marginRight: 8, marginTop: 2 }} />
+                    <Text style={styles.explanationText} numberOfLines={4}>
+                      {match.explanation}
                     </Text>
                   </View>
-                ))}
-              </View>
+                )}
 
-              {/* Action button */}
-              <TouchableOpacity style={[styles.wearBtn, { backgroundColor: theme.tint }]}>
-                <Text style={styles.wearBtnText}>Plan to Wear</Text>
-              </TouchableOpacity>
-            </View>
-          ))
+                {/* Action button */}
+                <TouchableOpacity style={[styles.wearBtn, { backgroundColor: theme.tint }]}>
+                  <Text style={styles.wearBtnText}>Plan to Wear</Text>
+                </TouchableOpacity>
+              </View>
+            );
+          })
         ) : (
           <View style={[styles.emptyContainer, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <Sparkles size={40} color={theme.tabIconDefault} style={{ marginBottom: 12 }} />
@@ -397,5 +373,51 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 12,
     textAlign: 'center',
+  },
+  centerContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+  loadingText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  retryBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  retryBtnText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  matchImageContainer: {
+    width: '100%',
+    height: 220,
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginBottom: 12,
+    borderWidth: 1,
+  },
+  matchImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  explanationBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+  },
+  explanationText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
   },
 });
