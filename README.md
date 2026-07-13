@@ -1,7 +1,6 @@
 <div align="center">
 
-# <img width="512" height="512" alt="image" src="https://github.com/user-attachments/assets/8bded46c-fa6b-4c0b-bba3-8627b66e3925" />
- KLOSET
+# <img width="24" height="24" alt="image" src="https://github.com/user-attachments/assets/8bded46c-fa6b-4c0b-bba3-8627b66e3925" /> KLOSET
 
 ### Your AI-Powered Personal Stylist
 
