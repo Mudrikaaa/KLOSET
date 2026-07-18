@@ -23,6 +23,7 @@ const OCCASION_FREQUENCIES: OccasionFrequency[] = [
   'Mostly Casual', 'Mix of Everything', 'Lots of Functions and Events', 'Professional Environment Daily'
 ];
 const COLOR_COMFORTS: ColorComfort[] = ['Neutrals Only', 'Some Color', 'Bold and Colorful'];
+const AGE_RANGES: AgeRange[] = ['16-21', '22-27', '28-35', '36-45', '45+'];
 
 const TOP_SIZES: TopSize[] = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
 const BOTTOM_SIZES: BottomSize[] = ['24', '26', '28', '30', '32', '34', '36', '38', '40'];

@@ -1,115 +1,13 @@
 const db = require('../config/db');
-
-/**
- * Occasion-to-Formality Mapping
- * Prevents casual outfits from being suggested for formal/festive events.
- */
-const occasionToFormality = {
-  // Festive & Family
-  'Diwali Party (Family)': ['Festive', 'Semi-formal'],
-  'Diwali Party (Friends)': ['Festive', 'Party', 'Smart Casual'],
-  'Holi': ['Casual'],
-  'Navratri / Garba': ['Festive', 'Party'],
-  'Eid': ['Festive', 'Semi-formal', 'Formal'],
-  'Regional Festival': ['Festive', 'Semi-formal'],
-  'Pooja / Temple Visit': ['Festive', 'Semi-formal'],
-
-  // Weddings
-  'Mehendi Function': ['Festive', 'Party'],
-  'Sangeet Night': ['Party', 'Festive'],
-  'Wedding (Close Family)': ['Formal', 'Festive'],
-  'Wedding (Guest)': ['Festive', 'Semi-formal'],
-  'Reception': ['Formal', 'Party'],
-  'Cocktail / Pre-wedding': ['Party', 'Semi-formal'],
-  'Engagement Ceremony': ['Semi-formal', 'Festive'],
-  'Roka / Sagai': ['Semi-formal', 'Festive'],
-
-  // College
-  'First Day of College': ['Smart Casual', 'Casual'],
-  'College Farewell': ['Semi-formal', 'Smart Casual'],
-  'College Fest (Day)': ['Casual', 'Smart Casual'],
-  'College Fest (Night)': ['Party', 'Smart Casual'],
-  'College Trip': ['Casual'],
-  'Internship (Startup)': ['Smart Casual', 'Casual'],
-  'Internship (Corporate)': ['Smart Casual', 'Semi-formal'],
-
-  // Professional
-  'Job Interview (Tech)': ['Smart Casual', 'Semi-formal'],
-  'Job Interview (Corporate)': ['Formal', 'Semi-formal'],
-  'Office (Startup)': ['Smart Casual', 'Casual'],
-  'Office (Formal)': ['Formal', 'Semi-formal'],
-  'Client Meeting': ['Semi-formal', 'Formal'],
-
-  // Social
-  'Casual Outing': ['Casual', 'Smart Casual'],
-  'Mall / Shopping Day': ['Casual', 'Smart Casual'],
-  'Brunch / Cafe': ['Smart Casual', 'Casual'],
-  'Dinner Date': ['Smart Casual', 'Semi-formal'],
-  'First Date': ['Smart Casual', 'Semi-formal'],
-  'Night Out': ['Party', 'Smart Casual'],
-  'House Party': ['Smart Casual', 'Casual', 'Party'],
-
-  // Special
-  'My Birthday': ['Party', 'Smart Casual', 'Festive'],
-  "Friend's Birthday": ['Party', 'Smart Casual'],
-  'Travel Day': ['Casual'],
-  'Airport / Travel Look': ['Smart Casual', 'Casual'],
-  'Gym / Workout': ['Casual'],
-  'Beach / Pool Day': ['Casual'],
-  'WFH / Video Call': ['Smart Casual', 'Casual'],
-  'Anniversary Dinner': ['Semi-formal', 'Formal'],
-  'Baby Shower / Godh Bharai': ['Festive', 'Smart Casual'],
-};
-
-/**
- * Helper to determine allowed formalities based on occasion.
- * Includes fuzzy matching to support dynamic occasion inputs.
- */
-const getAllowedFormalities = (occasion) => {
-  if (!occasion) return null;
-  const occLower = occasion.toLowerCase();
-
-  // Exact matching check
-  for (const [key, val] of Object.entries(occasionToFormality)) {
-    if (key.toLowerCase() === occLower) {
-      return val;
-    }
-  }
-
-  // Fuzzy substring matches
-  if (occLower.includes('wedding') || occLower.includes('cocktail') || occLower.includes('marriage')) {
-    return ['Formal', 'Festive', 'Party'];
-  }
-  if (occLower.includes('party') || occLower.includes('night') || occLower.includes('dinner')) {
-    return ['Festive', 'Party', 'Smart Casual'];
-  }
-  if (occLower.includes('office') || occLower.includes('work') || occLower.includes('interview')) {
-    return ['Smart Casual', 'Semi-formal', 'Formal'];
-  }
-  if (occLower.includes('festival') || occLower.includes('diwali') || occLower.includes('pooja') || occLower.includes('eid')) {
-    return ['Festive', 'Formal', 'Semi-formal'];
-  }
-
-  // Default fallback
-  return ['Casual', 'Smart Casual'];
-};
-
-/**
- * Returns colors that should be AVOIDED for this occasion in Indian cultural context.
- */
-const getOccasionColorBlacklist = (occasion) => {
-  const occLower = (occasion || '').toLowerCase();
-
-  if (occLower.includes('wedding') && !occLower.includes('cocktail')) {
-    // Don't suggest red/scarlet/crimson to wedding guests — it's traditionally the bride's color
-    return ['Red', 'Scarlet', 'Crimson'];
-  }
-  if (occLower.includes('pooja') || occLower.includes('temple')) {
-    // Avoid black for religious occasions
-    return ['Black'];
-  }
-  return [];
-};
+// why: all styling knowledge (formality maps, cultural colour rules, occasion
+// style profiles) lives in services/stylistRules.js — one designer brain
+// shared by the catalog engine and the wardrobe composer. The map below is
+// re-exported from there; do not fork it back into this file.
+const {
+  getAllowedFormalities,
+  getOccasionColorBlacklist,
+} = require('../services/stylistRules');
+const { composeOutfits } = require('../services/outfitComposer');
 
 /**
  * Formatter to convert database outfit row to frontend JSON schema
@@ -166,15 +64,19 @@ exports.getOutfitById = async (req, res, next) => {
 
 /**
  * Rule-based Outfit Suggestions matching occasion and user profile.
- * Route: GET /suggestions
+ * Route: GET /suggestions   ("ideas from outside" — the curated catalog)
  * Query parameters:
  *   - occasion: (required) e.g., 'Wedding (Close Family)'
- *   - season: (optional) e.g., 'Summer', 'Winter'
+ *   - season:   (optional) e.g., 'Summer', 'Winter'
+ *   - coverage: (optional) 'Modest' | 'Moderate' | 'Open' — per-request spec
+ *               override; when browsing ideas the user may want a different
+ *               coverage than their profile default
+ *   - style:    (optional) style lane override, same reasoning
  */
 exports.getSuggestions = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const { occasion, season } = req.query;
+    const { occasion, season, coverage, style } = req.query;
 
     if (!occasion) {
       return res.status(400).json({ error: 'The occasion query parameter is required.' });
@@ -237,8 +139,8 @@ exports.getSuggestions = async (req, res, next) => {
       occasion,
       user.body_shape || 'Hourglass',
       user.skin_tone || 'Wheatish',
-      user.style_pref || 'Fusion',
-      user.coverage_preference || 'Moderate',
+      style || user.style_pref || 'Fusion',
+      coverage || user.coverage_preference || 'Moderate',
       allowedFormalities,
       season || null,
       user.undertone || 'Neutral',
@@ -248,9 +150,63 @@ exports.getSuggestions = async (req, res, next) => {
 
     const result = await db.query(suggestionsQuery, values);
 
-    // 5. Return matching outfits, formatted correctly
-    res.status(200).json(result.rows.map(formatOutfit));
+    // Optional hard style-lane filter when the user explicitly asked for one
+    let rows = result.rows;
+    if (style) rows = rows.filter((r) => r.style === style);
 
+    res.status(200).json(rows.map(formatOutfit));
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Closet-first suggestions: complete outfits COMPOSED from the user's own
+ * wardrobe items for an occasion, each with a short "why this works" note.
+ * Route: GET /suggestions/wardrobe
+ * Query parameters:
+ *   - occasion: (required)
+ *   - season:   (optional)
+ *   - coverage: (optional spec override)
+ */
+exports.getWardrobeSuggestions = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { occasion, season, coverage } = req.query;
+
+    if (!occasion) {
+      return res.status(400).json({ error: 'The occasion query parameter is required.' });
+    }
+
+    const [userResult, itemsResult] = await Promise.all([
+      db.query(
+        'SELECT height, body_shape, skin_tone, undertone, style_pref, coverage_preference, color_comfort FROM users WHERE id = $1',
+        [userId]
+      ),
+      db.query('SELECT * FROM wardrobe_items WHERE user_id = $1', [userId]),
+    ]);
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User profile not found.' });
+    }
+
+    const outfits = composeOutfits(itemsResult.rows, userResult.rows[0], occasion, {
+      season: season || null,
+      coverage: coverage || null,
+    });
+
+    res.status(200).json({
+      occasion,
+      wardrobeSize: itemsResult.rows.length,
+      outfits: outfits.map((o, idx) => ({
+        id: `wardrobe-${idx}`,
+        lane: o.lane,
+        matchScore: o.score,
+        explanation: o.explanation,
+        items: o.items, // raw snake_case rows; the client maps with mapWardrobeItem
+      })),
+    });
   } catch (err) {
     next(err);
   }

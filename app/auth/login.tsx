@@ -33,17 +33,6 @@ export default function LoginScreen() {
     }
   };
 
-  const handleGuestLogin = async () => {
-    setError('');
-    setLoading(true);
-    try {
-      await login('guest@kloset.com', '');
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
-      setLoading(false);
-    }
-  };
-
   return (
     <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
@@ -127,23 +116,6 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </RNView>
         </View>
-
-        {/* Divider */}
-        <RNView style={styles.dividerRow}>
-          <RNView style={[styles.line, { backgroundColor: theme.border }]} />
-          <Text style={[styles.orText, { color: theme.tabIconDefault }]}>OR</Text>
-          <RNView style={[styles.line, { backgroundColor: theme.border }]} />
-        </RNView>
-
-        {/* Guest Access Button */}
-        <TouchableOpacity 
-          onPress={handleGuestLogin}
-          disabled={loading}
-          style={[styles.guestBtn, { borderColor: theme.border, backgroundColor: theme.card }]}
-          activeOpacity={0.8}
-        >
-          <Text style={[styles.guestText, { color: theme.text }]}>Explore as Guest</Text>
-        </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -261,32 +233,6 @@ const styles = StyleSheet.create({
   },
   promptAction: {
     fontSize: 13,
-    fontWeight: '700',
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 24,
-    backgroundColor: 'transparent',
-  },
-  line: {
-    flex: 1,
-    height: 1,
-  },
-  orText: {
-    paddingHorizontal: 16,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  guestBtn: {
-    height: 52,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  guestText: {
-    fontSize: 15,
     fontWeight: '700',
   },
 });

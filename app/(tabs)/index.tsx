@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, FlatList, TouchableOpacity, Image, Dimensions } from 'react-native';
+import { StyleSheet, FlatList, TouchableOpacity, Image, Dimensions, View as RNView } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -117,7 +117,7 @@ export default function WardrobeScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.gridContainer}
           renderItem={({ item }) => {
-            const itemColors = item.colors || (item.color ? [item.color] : []);
+            const itemColors = item.colors || [];
             const colorTitle = itemColors.length > 0 ? itemColors.join(' & ') : 'Garment';
             return (
               <TouchableOpacity 
@@ -130,7 +130,7 @@ export default function WardrobeScreen() {
                     {`${colorTitle} ${item.category}`}
                   </Text>
                   <View style={styles.tagRow}>
-                    <Text style={[styles.itemCategory, { color: theme.tabIconDefault }]} numberOfLines={1} style={{ flex: 1, marginRight: 4 }}>
+                    <Text style={[styles.itemCategory, { color: theme.tabIconDefault, flex: 1, marginRight: 4 }]} numberOfLines={1}>
                       {item.category}
                     </Text>
                     <RNView style={styles.colorDotRow}>

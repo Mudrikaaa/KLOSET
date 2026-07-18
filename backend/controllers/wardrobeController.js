@@ -1,5 +1,6 @@
 const cloudinary = require('cloudinary').v2;
 const db = require('../config/db');
+const { analyzeGarmentImage } = require('../services/visionService');
 
 // Configure Cloudinary using environment variables
 cloudinary.config({
@@ -53,6 +54,32 @@ const uploadToCloudinary = (fileBuffer) => {
     // Write buffer into the writable stream and end it
     uploadStream.end(fileBuffer);
   });
+};
+
+/**
+ * Analyze a garment photo with the vision service and return pre-fill values
+ * for the upload form.
+ * Route: POST /wardrobe/analyze
+ * Format: multipart/form-data (contains only the 'image' file)
+ *
+ * why always 200 with detected:null instead of an error status: auto-detection
+ * is a convenience layer. The client treats any failure as "fill the form
+ * manually" — an error status would wrongly surface as a broken upload flow.
+ */
+exports.analyzeWardrobeItem = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'An image file is required for analysis.' });
+    }
+
+    const result = await analyzeGarmentImage(req.file.buffer, req.file.mimetype);
+    res.status(200).json(result);
+  } catch (err) {
+    // Defensive: the service already swallows its own failures, but never let
+    // an unexpected throw block the upload flow either.
+    console.error('[Wardrobe] Unexpected analyze error:', err);
+    res.status(200).json({ detected: null, lowConfidence: ['fabric', 'season', 'occasions'] });
+  }
 };
 
 /**

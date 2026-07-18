@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, TouchableOpacity, Image, ScrollView, TextInput, KeyboardAvoidingView, Platform, View as RNView } from 'react-native';
 import { Text, View, useThemeColor } from '@/components/Themed';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '@/store';
-import { Camera, Image as ImageIcon, X, Check, Tag, ChevronDown, ChevronUp } from 'lucide-react-native';
+import { Camera, Image as ImageIcon, X, Check, Tag, ChevronDown, ChevronUp, Sparkles } from 'lucide-react-native';
+import { api } from '@/lib';
+import type { DetectedGarment } from '@/lib/api';
 import * as ImagePicker from 'expo-image-picker';
 import StyledDropdown from '@/components/StyledDropdown';
 import ColorPalettePicker from '@/components/ColorPalettePicker';
@@ -32,7 +34,7 @@ const FABRICS: Fabric[] = [
   'Leather / Faux Leather', 'Wool', 'Fleece', 'Other'
 ];
 const LENGTHS: Length[] = ['Crop', 'Short', 'Knee-length', 'Midi', 'Maxi', 'Full', 'Not Applicable'];
-const PATTERNS: Pattern[] = ['Solid', 'Stripes', 'Floral', 'Geometric', 'Checks', 'Embroidered', 'Printed', 'Abstract'];
+const PATTERNS: Pattern[] = ['Solid', 'Stripes', 'Floral', 'Geometric', 'Checks', 'Bandhani / Tie-Dye', 'Embroidered', 'Printed', 'Abstract'];
 const NECKLINES: Neckline[] = ['Round', 'V-neck', 'Boat', 'Collar', 'Off-shoulder', 'Halter', 'High-neck', 'Not Applicable'];
 const SLEEVES: Sleeve[] = ['Sleeveless', 'Half', '3/4', 'Full', 'Not Applicable'];
 const SEASONS: Season[] = ['Summer', 'Winter', 'Monsoon', 'All-season'];
@@ -115,6 +117,19 @@ export default function UploadScreen() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // AI auto-detection state. analyzing = vision call in flight; aiFilled =
+  // form currently holds AI pre-fill values the user should double-check.
+  const [analyzing, setAnalyzing] = useState(false);
+  const [aiFilled, setAiFilled] = useState(false);
+  // why: setCategory() triggers the effect below, which would clobber an
+  // AI-detected sub-type with the category's first option. The ref lets the
+  // effect apply the detected sub-type instead on that one pass.
+  const pendingSubTypeRef = useRef<string | null>(null);
+  // why: the screen can be closed (saved manually) while analysis is still in
+  // flight; a stale result must not mutate an unmounted form.
+  const cancelledRef = useRef(false);
+  useEffect(() => () => { cancelledRef.current = true; }, []);
+
   // Collapsible Section States
   const [collapsed, setCollapsed] = useState({
     details: true,
@@ -126,7 +141,9 @@ export default function UploadScreen() {
   useEffect(() => {
     const subs = SUB_TYPES_BY_CATEGORY[category];
     if (subs && subs.length > 0) {
-      setSubType(subs[0]);
+      const pending = pendingSubTypeRef.current;
+      pendingSubTypeRef.current = null;
+      setSubType(pending && subs.includes(pending) ? pending : subs[0]);
     }
   }, [category]);
 
@@ -141,6 +158,64 @@ export default function UploadScreen() {
   const isBottomCategory = [
     'Bottoms', 'Ethnic Bottoms', 'Lehengas'
   ].includes(category);
+
+  // Apply AI-detected values onto the form. Every value is re-validated
+  // against the local option lists — the form must never hold a value its own
+  // dropdowns cannot display, even if the backend contract drifts.
+  const applyDetection = (detected: DetectedGarment) => {
+    if (detected.category && CATEGORIES.includes(detected.category)) {
+      // Hand the detected sub-type to the category-change effect (see ref note)
+      pendingSubTypeRef.current = detected.subType || null;
+      setCategory(detected.category);
+    } else if (detected.subType && SUB_TYPES_BY_CATEGORY[category]?.includes(detected.subType)) {
+      setSubType(detected.subType);
+    }
+
+    // why: without this, the Style Tag silently keeps its 'Western' default —
+    // a dupatta tagged Western poisons the +2 style match in suggestions.
+    if (detected.style && STYLE_CATEGORIES.includes(detected.style)) setStyle(detected.style);
+
+    const validColors = (detected.colors || [])
+      .filter((c) => COLOR_PALETTE.some((s) => s.name === c))
+      .slice(0, 3);
+    if (validColors.length > 0) setSelectedColors(validColors);
+
+    if (detected.fit && FITS.includes(detected.fit)) setFit(detected.fit);
+    if (detected.fabric && FABRICS.includes(detected.fabric)) setFabric(detected.fabric);
+    if (detected.length && LENGTHS.includes(detected.length)) setLength(detected.length);
+    if (detected.pattern && PATTERNS.includes(detected.pattern)) setPattern(detected.pattern);
+    if (detected.neckline && NECKLINES.includes(detected.neckline)) setNeckline(detected.neckline);
+    if (detected.sleeve && SLEEVES.includes(detected.sleeve)) setSleeve(detected.sleeve);
+    if (detected.structure && STRUCTURES.includes(detected.structure)) setStructure(detected.structure);
+    if (detected.embellishment && EMBELLISHMENTS.includes(detected.embellishment)) setEmbellishment(detected.embellishment);
+    if (detected.opacity && OPACITIES.includes(detected.opacity)) setOpacity(detected.opacity);
+
+    // Low-confidence fields — pre-filled but flagged "AI guessed" in the UI
+    if (detected.season && SEASONS.includes(detected.season)) setSeason(detected.season);
+    const validOccasions = (detected.occasions || []).filter((o) => INDIAN_OCCASIONS.includes(o));
+    if (validOccasions.length > 0) setSelectedOccasions(validOccasions);
+
+    // Open every section so the user can eyeball all pre-filled values at once
+    setCollapsed({ details: false, ethnic: false, occasions: false });
+    setAiFilled(true);
+  };
+
+  // why: tracks which photo the in-flight analysis belongs to, so a result
+  // arriving after the user removed or swapped the photo is discarded.
+  const analysisUriRef = useRef<string | null>(null);
+
+  const runAutoDetect = async (uri: string) => {
+    analysisUriRef.current = uri;
+    setAnalyzing(true);
+    // api.analyzeWardrobeImage never throws — a failed detection just leaves
+    // the manual form untouched.
+    const result = await api.analyzeWardrobeImage(uri);
+    if (cancelledRef.current || analysisUriRef.current !== uri) return;
+    if (result.detected && Object.keys(result.detected).length > 0) {
+      applyDetection(result.detected);
+    }
+    setAnalyzing(false);
+  };
 
   // Image Picker Logic
   const handlePickImage = async (useCamera: boolean) => {
@@ -169,8 +244,13 @@ export default function UploadScreen() {
           });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        setImageUri(result.assets[0].uri);
+        const uri = result.assets[0].uri;
+        setImageUri(uri);
         setError('');
+        setAiFilled(false);
+        // Fire-and-forget: detection pre-fills the form while the user looks
+        // at the preview; manual entry stays fully available throughout.
+        runAutoDetect(uri);
       }
     } catch (err) {
       setError('Could not access image. Please try again.');
@@ -266,8 +346,13 @@ export default function UploadScreen() {
           {imageUri ? (
             <RNView style={styles.previewContainer}>
               <Image source={{ uri: imageUri }} style={styles.previewImage} />
-              <TouchableOpacity 
-                onPress={() => setImageUri(null)}
+              <TouchableOpacity
+                onPress={() => {
+                  setImageUri(null);
+                  analysisUriRef.current = null;
+                  setAnalyzing(false);
+                  setAiFilled(false);
+                }}
                 disabled={loading}
                 style={[styles.removeImageBtn, { opacity: loading ? 0.5 : 1 }]}
               >
@@ -296,6 +381,22 @@ export default function UploadScreen() {
             </RNView>
           )}
         </RNView>
+
+        {/* AI auto-detection status banner */}
+        {analyzing && (
+          <RNView style={[styles.aiBanner, { backgroundColor: `${theme.tint}15`, borderColor: theme.tint }]}>
+            <Sparkles size={16} color={theme.tint} />
+            <Text style={[styles.aiBannerText, { color: theme.tint }]}>Analyzing your garment…</Text>
+          </RNView>
+        )}
+        {!analyzing && aiFilled && (
+          <RNView style={[styles.aiBanner, { backgroundColor: `${theme.tint}15`, borderColor: theme.tint }]}>
+            <Sparkles size={16} color={theme.tint} />
+            <Text style={[styles.aiBannerText, { color: theme.tint }]}>
+              AI pre-filled the details — double-check Fabric, Season & Occasions especially
+            </Text>
+          </RNView>
+        )}
 
         {/* Section 2: Basics (always expanded) */}
         <View style={styles.basicsContainer}>
@@ -430,7 +531,14 @@ export default function UploadScreen() {
 
         {!collapsed.occasions && (
           <View style={[styles.collapsibleContent, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <Text style={[styles.fieldLabel, { color: theme.text }]}>Season</Text>
+            <RNView style={styles.labelRow}>
+              <Text style={[styles.fieldLabel, { color: theme.text }]}>Season</Text>
+              {aiFilled && (
+                <RNView style={[styles.aiBadge, { borderColor: theme.accent }]}>
+                  <Text style={[styles.aiBadgeText, { color: theme.accent }]}>AI guessed — double-check</Text>
+                </RNView>
+              )}
+            </RNView>
             <RNView style={styles.chipRow}>
               {SEASONS.map((s) => {
                 const isSelected = season === s;
@@ -455,7 +563,14 @@ export default function UploadScreen() {
               })}
             </RNView>
 
-            <Text style={[styles.fieldLabel, { color: theme.text, marginTop: 14 }]}>Suitable Occasions (Multi-select)</Text>
+            <RNView style={[styles.labelRow, { marginTop: 14 }]}>
+              <Text style={[styles.fieldLabel, { color: theme.text }]}>Suitable Occasions (Multi-select)</Text>
+              {aiFilled && (
+                <RNView style={[styles.aiBadge, { borderColor: theme.accent }]}>
+                  <Text style={[styles.aiBadgeText, { color: theme.accent }]}>AI guessed — double-check</Text>
+                </RNView>
+              )}
+            </RNView>
             <RNView style={styles.chipRow}>
               {INDIAN_OCCASIONS.map((occ) => {
                 const isSelected = selectedOccasions.includes(occ);
@@ -562,6 +677,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
     overflow: 'hidden',
+  },
+  aiBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginTop: -8,
+    marginBottom: 20,
+  },
+  aiBannerText: {
+    fontSize: 13,
+    fontWeight: '600',
+    flex: 1,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'transparent',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  aiBadge: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+  },
+  aiBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
   },
   previewContainer: {
     width: '100%',

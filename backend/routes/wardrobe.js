@@ -29,6 +29,11 @@ router.get('/', authenticateToken, wardrobeController.listWardrobeItems);
 // The field name for the image file must be 'image'
 router.post('/', authenticateToken, upload.single('image'), wardrobeController.addWardrobeItem);
 
+// POST /wardrobe/analyze - AI auto-detection: returns pre-fill values for the
+// upload form from a garment photo. Never blocks a save — on any AI failure it
+// responds 200 with { detected: null } and the user fills the form manually.
+router.post('/analyze', authenticateToken, upload.single('image'), wardrobeController.analyzeWardrobeItem);
+
 // PUT /wardrobe/:id - Update an existing wardrobe item's details
 router.put('/:id', authenticateToken, wardrobeController.updateWardrobeItem);
 

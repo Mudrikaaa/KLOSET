@@ -2,7 +2,8 @@ import {
   UserStyleProfile, Height, BodyShape, SkinTone, Undertone, StylePreference, 
   WardrobeItem, Category, Fit, Fabric, Length, Pattern, Neckline, Sleeve, 
   Season, Color, CoveragePreference, OccasionFrequency, ColorComfort, Outfit,
-  Swipe, SwipeHistoryItem
+  Swipe, SwipeHistoryItem, GarmentSubType, WaistPosition, Structure,
+  Embellishment, Opacity
 } from '../types';
 
 // Dynamic API Base URL detection for React Native development environment
@@ -11,7 +12,7 @@ const getBaseUrl = () => {
     return process.env.EXPO_PUBLIC_API_URL;
   }
   // Default fallback to the developer's laptop local IP for physical devices/Expo Go
-  return 'http://192.168.1.4:5000';
+  return 'http://192.168.1.6:5000';
 };
 
 
@@ -67,6 +68,49 @@ const getHeaders = (isMultipart = false) => {
   return headers;
 };
 
+
+// Result shape of the backend vision auto-detection endpoint.
+// All fields are optional — the backend only returns what it confidently
+// validated against the real enums; season/occasions are always low-confidence.
+export interface DetectedGarment {
+  category?: Category;
+  subType?: GarmentSubType;
+  style?: StylePreference;
+  colors?: string[];
+  fit?: Fit;
+  fabric?: Fabric;
+  length?: Length;
+  pattern?: Pattern;
+  neckline?: Neckline;
+  sleeve?: Sleeve;
+  structure?: Structure;
+  embellishment?: Embellishment;
+  opacity?: Opacity;
+  season?: Season;
+  occasions?: string[];
+}
+
+export interface AnalyzeResult {
+  detected: DetectedGarment | null;
+  lowConfidence: string[];
+}
+
+// Optional per-request spec overrides when browsing suggestions — e.g. the
+// user wants Moderate coverage ideas even though her profile says Open.
+export interface SuggestionSpecs {
+  season?: Season;
+  coverage?: CoveragePreference;
+  style?: StylePreference;
+}
+
+// A complete outfit composed from the user's own wardrobe items.
+export interface WardrobeOutfit {
+  id: string;
+  lane: string;            // Ethnic | Fusion | Western | Minimal | Streetwear
+  matchScore: number;
+  explanation: string;     // 4-5 newline-separated "why this works" lines
+  items: WardrobeItem[];
+}
 
 // Helper to map snake_case database wardrobe item to camelCase frontend wardrobe item
 const mapWardrobeItem = (item: any): WardrobeItem => {
@@ -211,6 +255,48 @@ export const api = {
     return (data || []).map(mapWardrobeItem);
   },
 
+  // AI auto-detection: send the picked photo for analysis and get form
+  // pre-fill values back. NEVER throws — any failure (offline backend, missing
+  // API key, timeout) resolves to { detected: null } so the manual form flow
+  // is never blocked by the AI layer.
+  analyzeWardrobeImage: async (imageUri: string): Promise<AnalyzeResult> => {
+    const fallback: AnalyzeResult = { detected: null, lowConfidence: ['fabric', 'season', 'occasions'] };
+    // why: client-side cap slightly above the backend's 20s vision timeout, so
+    // the backend's graceful null-response wins over an aborted request.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 25000);
+
+    try {
+      const formData = new FormData();
+      const fileExt = imageUri.split('.').pop() || 'jpg';
+      const name = imageUri.split('/').pop() || `photo.${fileExt}`;
+      formData.append('image', {
+        uri: imageUri,
+        name,
+        type: `image/${fileExt === 'png' ? 'png' : 'jpeg'}`,
+      } as any);
+
+      const response = await fetch(`${API_BASE_URL}/wardrobe/analyze`, {
+        method: 'POST',
+        headers: getHeaders(true),
+        body: formData,
+        signal: controller.signal,
+      });
+
+      if (!response.ok) return fallback;
+      const data = await response.json();
+      return {
+        detected: data?.detected ?? null,
+        lowConfidence: data?.lowConfidence ?? fallback.lowConfidence,
+      };
+    } catch (err) {
+      console.warn('[KLOSET-DEBUG] [api.analyzeWardrobeImage] Detection unavailable:', err);
+      return fallback;
+    } finally {
+      clearTimeout(timer);
+    }
+  },
+
   addWardrobeItem: async (item: Omit<WardrobeItem, 'id' | 'userId' | 'createdAt'>): Promise<WardrobeItem> => {
     const formData = new FormData();
     const fileExt = item.imageUrl.split('.').pop() || 'jpg';
@@ -324,12 +410,12 @@ export const api = {
     return response.json();
   },
 
-  getSuggestions: async (occasion: string, season?: string): Promise<Outfit[]> => {
+  getSuggestions: async (occasion: string, specs?: SuggestionSpecs): Promise<Outfit[]> => {
     const queryParams = new URLSearchParams();
     queryParams.append('occasion', occasion);
-    if (season) {
-      queryParams.append('season', season);
-    }
+    if (specs?.season) queryParams.append('season', specs.season);
+    if (specs?.coverage) queryParams.append('coverage', specs.coverage);
+    if (specs?.style) queryParams.append('style', specs.style);
     const response = await fetch(`${API_BASE_URL}/suggestions?${queryParams.toString()}`, {
       method: 'GET',
       headers: getHeaders(),
@@ -347,5 +433,36 @@ export const api = {
       bodyShapes: item.bodyShapes || [],
       skinTones: item.skinTones || [],
     }));
+  },
+
+  // Closet-first: outfits composed from the user's OWN wardrobe, each with a
+  // short why-this-works note. Item rows arrive snake_case from the DB and
+  // are mapped here so the rest of the app only ever sees camelCase.
+  getWardrobeSuggestions: async (occasion: string, specs?: SuggestionSpecs): Promise<{ wardrobeSize: number; outfits: WardrobeOutfit[] }> => {
+    const queryParams = new URLSearchParams();
+    queryParams.append('occasion', occasion);
+    if (specs?.season) queryParams.append('season', specs.season);
+    if (specs?.coverage) queryParams.append('coverage', specs.coverage);
+    const response = await fetch(`${API_BASE_URL}/suggestions/wardrobe?${queryParams.toString()}`, {
+      method: 'GET',
+      headers: getHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to fetch wardrobe suggestions');
+    }
+
+    const data = await response.json();
+    return {
+      wardrobeSize: data.wardrobeSize || 0,
+      outfits: (data.outfits || []).map((o: any) => ({
+        id: o.id,
+        lane: o.lane,
+        matchScore: o.matchScore,
+        explanation: o.explanation,
+        items: (o.items || []).map(mapWardrobeItem),
+      })),
+    };
   },
 };

@@ -39,6 +39,10 @@ const OCCASIONS = [
 export default function DiscoverScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme];
+  // why: per the hydration rule, API effects must wait for hasHydrated so the
+  // JWT is restored before the first /suggestions call on a cold start.
+  const hasHydrated = useAppStore((state) => state.hasHydrated);
+  const isAuthenticated = useAppStore((state) => state.isAuthenticated);
   const [outfits, setOutfits] = useState<Outfit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,8 +68,9 @@ export default function DiscoverScreen() {
   };
 
   useEffect(() => {
+    if (!hasHydrated || !isAuthenticated) return;
     fetchCatalog(activeOccasion);
-  }, [activeOccasion]);
+  }, [activeOccasion, hasHydrated, isAuthenticated]);
 
   const handleAction = (type: 'like' | 'dislike') => {
     if (currentIndex < outfits.length) {

@@ -26,125 +26,6 @@ interface AppState {
   signOut: () => Promise<void>;
 }
 
-const DEFAULT_WARDROBE_ITEMS: WardrobeItem[] = [
-  { 
-    id: '1', 
-    userId: 'user_1', 
-    category: 'Tops', 
-    imageUrl: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=500&auto=format&fit=crop&q=60', 
-    color: 'White', 
-    style: 'Western', 
-    tags: ['shirt', 'summer', 'linen'], 
-    createdAt: new Date().toISOString(),
-    fit: 'Regular',
-    fabric: 'Linen',
-    length: 'Short',
-    pattern: 'Solid',
-    neckline: 'Collar',
-    sleeve: 'Half',
-    season: 'Summer',
-    occasions: ['Brunch / Cafe', 'Casual Outing']
-  },
-  { 
-    id: '2', 
-    userId: 'user_1', 
-    category: 'Bottoms', 
-    imageUrl: 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=500&auto=format&fit=crop&q=60', 
-    color: 'Beige', 
-    style: 'Western', 
-    tags: ['chinos', 'casual'], 
-    createdAt: new Date().toISOString(),
-    fit: 'Regular',
-    fabric: 'Cotton',
-    length: 'Full',
-    pattern: 'Solid',
-    neckline: 'Not Applicable',
-    sleeve: 'Not Applicable',
-    season: 'All-season',
-    occasions: ['Brunch / Cafe', 'Casual Outing', 'Office (Startup)']
-  },
-  { 
-    id: '3', 
-    userId: 'user_1', 
-    category: 'Ethnic', 
-    imageUrl: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=500&auto=format&fit=crop&q=60', 
-    color: 'Maroon', 
-    style: 'Ethnic', 
-    tags: ['kurta', 'festive'], 
-    createdAt: new Date().toISOString(),
-    fit: 'Relaxed',
-    fabric: 'Silk',
-    length: 'Knee-length',
-    pattern: 'Embroidered',
-    neckline: 'Round',
-    sleeve: 'Full',
-    season: 'All-season',
-    occasions: ['Diwali Party (Family)', 'Regional Festival', 'Wedding (Close Family)']
-  },
-  { 
-    id: '4', 
-    userId: 'user_1', 
-    category: 'Outers', 
-    imageUrl: 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=500&auto=format&fit=crop&q=60', 
-    color: 'Indigo', 
-    style: 'Western', 
-    tags: ['jacket', 'denim'], 
-    createdAt: new Date().toISOString(),
-    fit: 'Relaxed',
-    fabric: 'Denim',
-    length: 'Short',
-    pattern: 'Solid',
-    neckline: 'Collar',
-    sleeve: 'Full',
-    season: 'Winter',
-    occasions: ['Casual Outing', 'Brunch / Cafe', 'College Fest (Night)']
-  },
-  { 
-    id: '5', 
-    userId: 'user_1', 
-    category: 'Shoes', 
-    imageUrl: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=500&auto=format&fit=crop&q=60', 
-    color: 'Beige', 
-    style: 'Western', 
-    tags: ['sneakers', 'retro'], 
-    createdAt: new Date().toISOString(),
-    fit: 'Regular',
-    fabric: 'Other',
-    length: 'Not Applicable',
-    pattern: 'Solid',
-    neckline: 'Not Applicable',
-    sleeve: 'Not Applicable',
-    season: 'All-season',
-    occasions: ['Casual Outing', 'First Day of College', 'Mall / Shopping Day']
-  },
-  { 
-    id: '6', 
-    userId: 'user_1', 
-    category: 'Dresses', 
-    imageUrl: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=500&auto=format&fit=crop&q=60', 
-    color: 'Emerald', 
-    style: 'Western', 
-    tags: ['dress', 'evening'], 
-    createdAt: new Date().toISOString(),
-    fit: 'Fitted',
-    fabric: 'Silk',
-    length: 'Midi',
-    pattern: 'Solid',
-    neckline: 'V-neck',
-    sleeve: 'Sleeveless',
-    season: 'Summer',
-    occasions: ['Cocktail / Pre-wedding', 'Dinner Date', 'Night Out']
-  },
-];
-
-const generateUUID = () => {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-};
-
 const customStorage = {
   getItem: async (name: string) => {
     const value = await AsyncStorage.getItem(name);
@@ -193,42 +74,10 @@ export const useAppStore = create<AppState>()(
       token: null,
       profile: null,
       hasSeenOnboarding: false,
-      wardrobeItems: DEFAULT_WARDROBE_ITEMS,
+      wardrobeItems: [],
       swipeHistory: [],
-      
-      login: async (email, password = '') => {
-        if (email === 'guest@kloset.com') {
-          set({
-            isAuthenticated: true,
-            token: 'guest_token',
-            profile: {
-              id: 'guest_user',
-              name: 'Guest Stylist',
-              email: 'guest@kloset.com',
-              height: 'Average',
-              bodyShape: 'Hourglass',
-              skinTone: 'Wheatish',
-              undertone: 'Neutral',
-              stylePreference: 'Fusion',
-              coveragePreference: 'Moderate',
-              occasionFrequency: 'Mix of Everything',
-              colorComfort: 'Some Color',
-              ageRange: '22-27',
-              topSize: 'M',
-              bottomSize: '30',
-              braSize: '32C',
-              shoeSize: '6',
-              comfortZones: ['None'],
-              city: 'Mumbai',
-              budgetTier: 'Mid-range',
-              jewelryTypes: ['Earrings', 'Watch'],
-              avoidList: [],
-            },
-            hasSeenOnboarding: true,
-          });
-          return;
-        }
 
+      login: async (email, password = '') => {
         const data = await api.login(email, password);
         console.log('[KLOSET-DEBUG] [store.login] Immediately before Zustand set()', {
           dataKeys: Object.keys(data || {}),
@@ -269,8 +118,10 @@ export const useAppStore = create<AppState>()(
         }, 1000);
 
         try {
+          // why: no mock fallback — a new user's wardrobe is genuinely empty,
+          // and the home screen's empty state should reflect that honestly.
           const items = await api.fetchWardrobeItems();
-          set({ wardrobeItems: items.length > 0 ? items : DEFAULT_WARDROBE_ITEMS });
+          set({ wardrobeItems: items });
         } catch (err) {
           console.warn('Error fetching wardrobe items after login:', err);
         }
@@ -294,7 +145,7 @@ export const useAppStore = create<AppState>()(
           token: data.token,
           profile: data.user,
           hasSeenOnboarding: false,
-          wardrobeItems: DEFAULT_WARDROBE_ITEMS,
+          wardrobeItems: [],
         });
         console.log('[KLOSET-DEBUG] [Stage 2 - Zustand set()] signup state updated:', {
           isAuthenticated: get().isAuthenticated,
@@ -305,14 +156,6 @@ export const useAppStore = create<AppState>()(
 
       saveProfile: async (profileData) => {
         const state = get();
-        if (state.profile?.id === 'guest_user') {
-          set((state) => ({
-            profile: state.profile ? { ...state.profile, ...profileData } as UserStyleProfile : null,
-            hasSeenOnboarding: true,
-          }));
-          return;
-        }
-
         if (!state.profile) return;
 
         const updatedUser = await api.updateProfile(profileData);
@@ -324,81 +167,40 @@ export const useAppStore = create<AppState>()(
 
       addWardrobeItem: async (item) => {
         console.log('[KLOSET-DEBUG] addWardrobeItem triggered with item:', { ...item, imageUrl: item.imageUrl.substring(0, 100) });
-        const state = get();
-        const userId = state.profile?.id || 'user_1';
-
-        console.log('[KLOSET-DEBUG] Auth state:', state.isAuthenticated, 'User ID:', userId);
-
-        if (state.isAuthenticated && userId !== 'guest_user') {
-          console.log('[KLOSET-DEBUG] Starting database and image upload sync to Express backend for new wardrobe item');
-          try {
-            const newItem = await api.addWardrobeItem(item);
-            console.log('[KLOSET-DEBUG] Express backend upload and sync successful!');
-            
-            set((state) => ({
-              wardrobeItems: [
-                ...state.wardrobeItems,
-                newItem
-              ]
-            }));
-            console.log('[KLOSET-DEBUG] Local state updated. addWardrobeItem complete!');
-          } catch (err) {
-            console.error('[KLOSET-DEBUG] Failed to sync wardrobe item to Express backend:', err);
-            throw err;
-          }
-        } else {
-          const itemId = generateUUID();
-          const createdAt = new Date().toISOString();
-          const newItem: WardrobeItem = {
-            ...item,
-            id: itemId,
-            userId,
-            imageUrl: item.imageUrl,
-            createdAt,
-          };
+        try {
+          const newItem = await api.addWardrobeItem(item);
           set((state) => ({
             wardrobeItems: [
               ...state.wardrobeItems,
               newItem
             ]
           }));
+        } catch (err) {
+          console.error('[KLOSET-DEBUG] Failed to sync wardrobe item to Express backend:', err);
+          throw err;
         }
       },
 
       recordSwipe: async (outfitId, direction) => {
         console.log('[KLOSET-DEBUG] recordSwipe triggered:', { outfitId, direction });
-        const state = get();
-        const userId = state.profile?.id || 'user_1';
-
-        if (state.isAuthenticated && userId !== 'guest_user') {
-          try {
-            const newSwipe = await api.recordSwipe(outfitId, direction);
-            console.log('[KLOSET-DEBUG] Swipe recorded successfully on backend:', newSwipe);
-            
-            if (direction === 'like') {
-              await get().fetchSwipeHistory();
-            }
-          } catch (err) {
-            console.error('[KLOSET-DEBUG] Failed to record swipe on backend:', err);
-            throw err;
+        try {
+          await api.recordSwipe(outfitId, direction);
+          if (direction === 'like') {
+            await get().fetchSwipeHistory();
           }
-        } else {
-          console.log('[KLOSET-DEBUG] Guest swipe recorded locally only.');
+        } catch (err) {
+          console.error('[KLOSET-DEBUG] Failed to record swipe on backend:', err);
+          throw err;
         }
       },
 
       fetchSwipeHistory: async () => {
-        const state = get();
-        const userId = state.profile?.id || 'user_1';
-        if (state.isAuthenticated && userId !== 'guest_user') {
-          console.log('[KLOSET-DEBUG] Fetching swipe history from backend...');
-          try {
-            const history = await api.getSwipeHistory();
-            set({ swipeHistory: history || [] });
-            console.log('[KLOSET-DEBUG] Swipe history loaded:', history.length);
-          } catch (err) {
-            console.error('[KLOSET-DEBUG] Failed to fetch swipe history:', err);
-          }
+        if (!get().isAuthenticated) return;
+        try {
+          const history = await api.getSwipeHistory();
+          set({ swipeHistory: history || [] });
+        } catch (err) {
+          console.error('[KLOSET-DEBUG] Failed to fetch swipe history:', err);
         }
       },
 
@@ -408,7 +210,7 @@ export const useAppStore = create<AppState>()(
           token: null,
           profile: null,
           hasSeenOnboarding: false,
-          wardrobeItems: DEFAULT_WARDROBE_ITEMS,
+          wardrobeItems: [],
           swipeHistory: [],
         });
       },

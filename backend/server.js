@@ -59,8 +59,12 @@ app.use('/outfits', outfitRoutes);
 // 6. Swipes Endpoint (/swipes)
 app.use('/swipes', swipeRoutes);
 
-// 7. Suggestions Endpoint (/suggestions?occasion=X)
-// Mounted directly on the root level to support the exact format GET /suggestions?occasion=X
+// 7. Suggestions Endpoints
+// /suggestions/wardrobe — closet-first: outfits composed from the user's own
+// wardrobe (registered before /suggestions only for readability; Express
+// matches exact paths either way).
+app.get('/suggestions/wardrobe', authenticateToken, outfitController.getWardrobeSuggestions);
+// /suggestions — curated catalog ("ideas from outside")
 app.get('/suggestions', authenticateToken, outfitController.getSuggestions);
 
 // =========================================================================

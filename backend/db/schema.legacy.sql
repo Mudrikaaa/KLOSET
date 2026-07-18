@@ -1,3 +1,11 @@
+-- ============================================================================
+-- LEGACY — DO NOT RUN.
+-- why: this script DROPs all tables and recreates the OLD pre-migration
+-- taxonomy (6 categories, single `color` column, no sub_type/structure/etc).
+-- Running it destroys data AND leaves the schema behind migrations 001+002.
+-- The live schema = this file's original tables + migration_001 + migration_002.
+-- Kept only as historical reference for the original table shapes.
+-- ============================================================================
 -- Kloset Database Schema Creation Script
 -- Directly runs in PostgreSQL
 
