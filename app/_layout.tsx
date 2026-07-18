@@ -68,7 +68,7 @@ function RootLayoutNav() {
     const profile = useAppStore.getState().profile;
     console.log('[KLOSET-DEBUG] [LayoutNav] Sync starting. profileExists:', !!profile, 'profileId:', profile?.id);
     
-    if (profile && profile.id !== 'guest_user') {
+    if (profile) {
       // Sync profile
       api.getProfile()
         .then((updatedProfile) => {
@@ -96,7 +96,7 @@ function RootLayoutNav() {
         })
         .catch((err) => console.warn('[KLOSET-DEBUG] Background swipe history sync failed:', err));
     } else {
-      console.log('[KLOSET-DEBUG] [LayoutNav] Sync skipped: guest user or no profile.');
+      console.log('[KLOSET-DEBUG] [LayoutNav] Sync skipped: no profile.');
     }
   }, [hasHydrated, isAuthenticated]);
 

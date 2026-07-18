@@ -55,7 +55,13 @@ export type Fabric =
 
 export type Fit = 'Oversized' | 'Relaxed' | 'Regular' | 'Slim' | 'Fitted' | 'Boxy';
 export type Length = 'Crop' | 'Short' | 'Knee-length' | 'Midi' | 'Maxi' | 'Full' | 'Not Applicable';
-export type Pattern = 'Solid' | 'Stripes' | 'Floral' | 'Geometric' | 'Checks' | 'Embroidered' | 'Printed' | 'Abstract';
+// why 'Bandhani / Tie-Dye' lives here AND 'Bandhani' in Embellishment: bandhani
+// is a resist-DYE pattern, so pattern is its true home. Keeping the
+// embellishment entry lets a plain bandhani piece read as its craft, but when a
+// garment carries both bandhani and a surface craft (the classic gota patti +
+// bandhani dupatta), the craft takes the embellishment slot and bandhani is
+// captured as the pattern.
+export type Pattern = 'Solid' | 'Stripes' | 'Floral' | 'Geometric' | 'Checks' | 'Bandhani / Tie-Dye' | 'Embroidered' | 'Printed' | 'Abstract';
 export type Neckline = 'Round' | 'V-neck' | 'Boat' | 'Collar' | 'Off-shoulder' | 'Halter' | 'High-neck' | 'Not Applicable';
 export type Sleeve = 'Sleeveless' | 'Half' | '3/4' | 'Full' | 'Not Applicable';
 export type Season = 'Summer' | 'Winter' | 'Monsoon' | 'All-season';
