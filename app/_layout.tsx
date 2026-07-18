@@ -20,6 +20,14 @@ export const unstable_settings = {
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
+// why: the [KLOSET-DEBUG] logs across the app include auth/token metadata that
+// must never ship in a release build. Silencing log/warn (not error) here in
+// one place beats hunting down every call site; dev behaviour is unchanged.
+if (!__DEV__) {
+  console.log = () => {};
+  console.warn = () => {};
+}
+
 export default function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
