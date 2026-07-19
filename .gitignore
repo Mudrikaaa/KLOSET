@@ -12,6 +12,9 @@ ml-service/__pycache__/
 **/__pycache__/
 *.pyc
 
+# design mockups shared separately, not part of the app build
+design_mockups/
+
 # Expo
 .expo/
 dist/
