@@ -37,6 +37,7 @@ const FILES = [
   'bootstrap_001_current_schema.sql',
   'migration_001_profile_expansion.sql',
   'migration_002_garment_expansion.sql',
+  'migration_003_closet_sections.sql',
   'seed_001_outfit_catalog.sql',
 ];
 

@@ -7,6 +7,7 @@ const userRoutes = require('./routes/users');
 const wardrobeRoutes = require('./routes/wardrobe');
 const outfitRoutes = require('./routes/outfits');
 const swipeRoutes = require('./routes/swipes');
+const sectionRoutes = require('./routes/sections');
 
 // We import the suggestions controller directly to mount /suggestions on the root path
 const outfitController = require('./controllers/outfitController');
@@ -58,6 +59,9 @@ app.use('/outfits', outfitRoutes);
 
 // 6. Swipes Endpoint (/swipes)
 app.use('/swipes', swipeRoutes);
+
+// 6b. Closet sections Endpoint (/sections) — shelves & drawers
+app.use('/sections', sectionRoutes);
 
 // 7. Suggestions Endpoints
 // /suggestions/wardrobe — closet-first: outfits composed from the user's own

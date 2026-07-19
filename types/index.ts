@@ -159,6 +159,22 @@ export interface WardrobeItem {
   structure?: Structure;            // NEW
   embellishment?: Embellishment;    // NEW
   opacity?: Opacity;               // NEW
+  sectionId?: string | null;        // shelf/drawer this item lives in
+  cutoutUrl?: string | null;        // transparent-PNG garment cutout (rembg/SegFormer)
+  sourceGroupId?: string | null;    // shared by items split from one uploaded photo
+}
+
+// Closet sections: shelves hold hanging garments, drawers hold folded /
+// non-hanging things (footwear, accessories, bags — anything).
+export type SectionKind = 'shelf' | 'drawer';
+
+export interface ClosetSection {
+  id: string;
+  name: string;
+  kind: SectionKind;
+  position: number;
+  itemCount?: number;
+  createdAt?: string;
 }
 
 export interface Outfit {

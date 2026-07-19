@@ -178,4 +178,63 @@ const analyzeGarmentImage = async (imageBuffer, mimeType) => {
   }
 };
 
-module.exports = { analyzeGarmentImage };
+/**
+ * Quick classification for the extraction pipeline: is this a photo of a
+ * WORN outfit, and does it contain a separable top + bottom?
+ * Free Gemini pass, strict JSON, and — like everything in this file — any
+ * failure resolves to null so the caller falls back safely.
+ */
+const classifyGarmentPhoto = async (imageBuffer, mimeType) => {
+  if (!process.env.GEMINI_API_KEY) return null;
+
+  const e = GARMENT_ENUMS;
+  const prompt = `You are cataloguing a clothing photo for a wardrobe app. Return ONLY strict JSON (no prose, no fences):
+
+{
+  "wornByPerson": true if a person is wearing the clothes in the photo, false for flat-lays / hangers / product shots,
+  "separableTopBottom": true ONLY if the photo shows a distinct upper garment AND a distinct lower garment that are separate pieces of clothing (e.g. kurta + jeans, blouse + skirt). false for any one-piece or matched set: saree, lehenga set, sharara/gharara set, anarkali, gown, dress, co-ord set, jumpsuit,
+  "lowerGarment": null, or when separableTopBottom is true: { "category": one of: ${'Bottoms | Ethnic Bottoms'}, "subType": one of: ${list(e.subTypes.filter((s) => ['Jeans', 'Trousers', 'Shorts', 'Skirt', 'Culottes', 'Joggers', 'Leggings', 'Churidar', 'Patiala', 'Palazzo', 'Dhoti Pants', 'Sharara', 'Gharara'].includes(s)))} }
+}`;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+    const response = await fetch(url, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { text: prompt },
+            { inline_data: { mime_type: mimeType, data: imageBuffer.toString('base64') } },
+          ],
+        }],
+        generationConfig: { temperature: 0, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } },
+      }),
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) return null;
+    const raw = JSON.parse(text);
+    return {
+      wornByPerson: !!raw.wornByPerson,
+      separableTopBottom: !!raw.separableTopBottom,
+      lowerGarment: raw.lowerGarment && typeof raw.lowerGarment === 'object'
+        ? {
+            category: ['Bottoms', 'Ethnic Bottoms'].includes(raw.lowerGarment.category) ? raw.lowerGarment.category : 'Bottoms',
+            subType: pickValid(raw.lowerGarment.subType, GARMENT_ENUMS.subTypes),
+          }
+        : null,
+    };
+  } catch (err) {
+    console.error('[Vision] classifyGarmentPhoto failed:', err.name === 'AbortError' ? 'timeout' : err.message);
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
+module.exports = { analyzeGarmentImage, classifyGarmentPhoto };

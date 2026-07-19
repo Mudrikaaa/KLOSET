@@ -3,7 +3,7 @@ import {
   WardrobeItem, Category, Fit, Fabric, Length, Pattern, Neckline, Sleeve, 
   Season, Color, CoveragePreference, OccasionFrequency, ColorComfort, Outfit,
   Swipe, SwipeHistoryItem, GarmentSubType, WaistPosition, Structure,
-  Embellishment, Opacity
+  Embellishment, Opacity, ClosetSection, SectionKind
 } from '../types';
 
 // Dynamic API Base URL detection for React Native development environment
@@ -136,8 +136,20 @@ const mapWardrobeItem = (item: any): WardrobeItem => {
     structure: item.structure as Structure,
     embellishment: item.embellishment as Embellishment,
     opacity: item.opacity as Opacity,
+    sectionId: item.section_id || null,
+    cutoutUrl: item.cutout_url || null,
+    sourceGroupId: item.source_group_id || null,
   };
 };
+
+const mapSection = (s: any): ClosetSection => ({
+  id: s.id,
+  name: s.name,
+  kind: s.kind as SectionKind,
+  position: s.position,
+  itemCount: s.itemCount,
+  createdAt: s.createdAt,
+});
 
 export const api = {
   // Auth Operations
@@ -297,7 +309,10 @@ export const api = {
     }
   },
 
-  addWardrobeItem: async (item: Omit<WardrobeItem, 'id' | 'userId' | 'createdAt'>): Promise<WardrobeItem> => {
+  // Returns EVERY item the upload created: usually one, but a worn photo of
+  // separable top + bottom garments is split into two rows by the backend
+  // extraction pipeline (self-contained sets like sarees never split).
+  addWardrobeItem: async (item: Omit<WardrobeItem, 'id' | 'userId' | 'createdAt'>): Promise<WardrobeItem[]> => {
     const formData = new FormData();
     const fileExt = item.imageUrl.split('.').pop() || 'jpg';
     const name = item.imageUrl.split('/').pop() || `photo.${fileExt}`;
@@ -330,6 +345,7 @@ export const api = {
     
     formData.append('occasions', JSON.stringify(item.occasions || []));
     formData.append('tags', JSON.stringify(item.tags || []));
+    if (item.sectionId) formData.append('sectionId', item.sectionId);
 
     const response = await fetch(`${API_BASE_URL}/wardrobe`, {
       method: 'POST',
@@ -342,6 +358,82 @@ export const api = {
       throw new Error(errorData.error || 'Failed to add wardrobe item');
     }
 
+    const data = await response.json();
+    const rows = data.items && data.items.length ? data.items : [data.item];
+    return rows.map(mapWardrobeItem);
+  },
+
+  // --- Closet sections (shelves & drawers) ---
+
+  getSections: async (): Promise<ClosetSection[]> => {
+    const response = await fetch(`${API_BASE_URL}/sections`, { method: 'GET', headers: getHeaders() });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to fetch sections');
+    }
+    return ((await response.json()) || []).map(mapSection);
+  },
+
+  createSection: async (name: string, kind: SectionKind): Promise<ClosetSection> => {
+    const response = await fetch(`${API_BASE_URL}/sections`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ name, kind }),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to create section');
+    }
+    return mapSection(await response.json());
+  },
+
+  renameSection: async (id: string, name: string): Promise<ClosetSection> => {
+    const response = await fetch(`${API_BASE_URL}/sections/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ name }),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to rename section');
+    }
+    return mapSection(await response.json());
+  },
+
+  reorderSections: async (orderedIds: string[]): Promise<ClosetSection[]> => {
+    const response = await fetch(`${API_BASE_URL}/sections/reorder`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ orderedIds }),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to reorder sections');
+    }
+    return ((await response.json()) || []).map(mapSection);
+  },
+
+  deleteSection: async (id: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/sections/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to delete section');
+    }
+  },
+
+  moveItemToSection: async (itemId: string, sectionId: string): Promise<WardrobeItem> => {
+    const response = await fetch(`${API_BASE_URL}/wardrobe/${itemId}/section`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ sectionId }),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to move item');
+    }
     const data = await response.json();
     return mapWardrobeItem(data.item);
   },

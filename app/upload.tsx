@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, TouchableOpacity, Image, ScrollView, TextInput, KeyboardAvoidingView, Platform, View as RNView } from 'react-native';
+import { StyleSheet, TouchableOpacity, Image, ScrollView, TextInput, KeyboardAvoidingView, Platform, Alert, View as RNView } from 'react-native';
 import { Text, View, useThemeColor } from '@/components/Themed';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -86,11 +86,32 @@ const INDIAN_OCCASIONS = [
   'Hill Station Trip', 'Heritage City Sightseeing', 'Graduation Day', 'Award Ceremony / Convocation', 'Anniversary Dinner'
 ];
 
+const AUTO_SECTION = 'Auto (pick for me)';
+
 export default function UploadScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme];
   const router = useRouter();
   const addWardrobeItem = useAppStore((state) => state.addWardrobeItem);
+
+  // Shelves & drawers — where this item will live
+  const sections = useAppStore((state) => state.sections);
+  const fetchSections = useAppStore((state) => state.fetchSections);
+  const hasHydrated = useAppStore((state) => state.hasHydrated);
+  const isAuthenticated = useAppStore((state) => state.isAuthenticated);
+  const [sectionChoice, setSectionChoice] = useState(AUTO_SECTION);
+
+  useEffect(() => {
+    // per the hydration rule: wait for the token before hitting the API
+    if (!hasHydrated || !isAuthenticated) return;
+    fetchSections();
+  }, [hasHydrated, isAuthenticated]);
+
+  const sectionOptions = [AUTO_SECTION, ...sections.map((s) => `${s.name} (${s.kind})`)];
+  const chosenSectionId =
+    sectionChoice === AUTO_SECTION
+      ? undefined
+      : sections.find((s) => `${s.name} (${s.kind})` === sectionChoice)?.id;
 
   // Form States
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -286,8 +307,9 @@ export default function UploadScreen() {
         .map((tag) => tag.trim().toLowerCase())
         .filter((tag) => tag.length > 0);
 
-      // Save to Zustand storage (which uploads to storage and database)
-      await addWardrobeItem({
+      // Save to Zustand storage (which uploads to storage and database).
+      // The backend may split a worn top+bottom photo into two items.
+      const created = await addWardrobeItem({
         imageUrl: imageUri,
         category,
         subType: subType as GarmentSubType,
@@ -306,9 +328,16 @@ export default function UploadScreen() {
         embellishment: isEthnicCategory ? embellishment : 'None',
         opacity,
         occasions: selectedOccasions.length > 0 ? selectedOccasions : ['Casual Outing'],
+        sectionId: chosenSectionId,
       });
 
       setLoading(false);
+      if (created.length > 1) {
+        Alert.alert(
+          'Two garments saved',
+          'We detected a separate top and bottom in your photo and saved them as two items. The second one is tagged "auto-split" — give its details a quick check.'
+        );
+      }
       router.back();
     } catch (err: any) {
       setError(err.message || 'An error occurred during save');
@@ -407,11 +436,18 @@ export default function UploadScreen() {
             onChange={(val) => setCategory(val as Category)}
           />
 
-          <StyledDropdown 
-            label="Sub-type" 
-            value={subType} 
-            options={SUB_TYPES_BY_CATEGORY[category] || []} 
+          <StyledDropdown
+            label="Sub-type"
+            value={subType}
+            options={SUB_TYPES_BY_CATEGORY[category] || []}
             onChange={(val) => setSubType(val)}
+          />
+
+          <StyledDropdown
+            label="Store in (shelf / drawer)"
+            value={sectionChoice}
+            options={sectionOptions}
+            onChange={(val) => setSectionChoice(val)}
           />
 
           <Text style={[styles.sectionLabel, { color: theme.text }]}>Style Tag</Text>

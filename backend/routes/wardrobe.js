@@ -34,6 +34,9 @@ router.post('/', authenticateToken, upload.single('image'), wardrobeController.a
 // responds 200 with { detected: null } and the user fills the form manually.
 router.post('/analyze', authenticateToken, upload.single('image'), wardrobeController.analyzeWardrobeItem);
 
+// PUT /wardrobe/:id/section - Move an item to another shelf/drawer
+router.put('/:id/section', authenticateToken, wardrobeController.moveItemSection);
+
 // PUT /wardrobe/:id - Update an existing wardrobe item's details
 router.put('/:id', authenticateToken, wardrobeController.updateWardrobeItem);
 

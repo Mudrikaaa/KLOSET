@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kloset — Atelier Noir UI Direction</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --noir:#0E0B0C; --charcoal:#1A1416; --charcoal-2:#241B1E;
+    --wine:#8E1D2C; --crimson:#C8102E; --gold:#C9A24B; --gold-soft:#E4C77E;
+    --ivory:#F4EDE4; --champagne:#E8DCC8; --taupe:#B8A99C; --muted:#7C6F68;
+    --serif:'Cormorant Garamond',Georgia,serif; --sans:'Inter',system-ui,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#100C0D;color:var(--ivory);font-family:var(--sans);
+    padding:40px 24px 64px;display:flex;flex-direction:column;align-items:center;
+    background-image:radial-gradient(circle at 20% 0%,#1c1416 0%,#100c0d 55%);}
+  .head{max-width:1100px;width:100%;text-align:center;margin-bottom:8px;}
+  .kicker{font-family:var(--sans);letter-spacing:.32em;text-transform:uppercase;
+    font-size:11px;color:var(--gold);font-weight:600;}
+  h1{font-family:var(--serif);font-weight:600;font-size:52px;line-height:1;margin:10px 0 6px;
+    letter-spacing:.5px;}
+  h1 em{font-style:italic;color:var(--gold-soft);}
+  .sub{color:var(--taupe);font-size:14px;max-width:560px;margin:0 auto 26px;line-height:1.6;}
+  /* legend */
+  .legend{display:flex;flex-wrap:wrap;gap:18px;justify-content:center;margin:0 auto 40px;
+    padding:18px 22px;border:1px solid #2c2124;border-radius:18px;background:rgba(26,20,22,.6);}
+  .swatch{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--taupe);}
+  .dot{width:22px;height:22px;border-radius:7px;border:1px solid rgba(255,255,255,.08);}
+  .type-note{display:flex;gap:22px;align-items:center;padding-left:22px;border-left:1px solid #33262a;}
+  .type-note .s{font-family:var(--serif);font-size:26px;color:var(--ivory);line-height:1;}
+  .type-note .n{font-family:var(--sans);font-size:12px;color:var(--taupe);}
+  /* phones */
+  .rack{display:flex;flex-wrap:wrap;gap:34px;justify-content:center;align-items:flex-start;max-width:1150px;}
+  .phone{width:320px;height:660px;background:var(--noir);border-radius:42px;
+    padding:14px;border:1px solid #2c2124;box-shadow:0 30px 70px rgba(0,0,0,.55);position:relative;overflow:hidden;}
+  .screen{width:100%;height:100%;border-radius:30px;overflow:hidden;position:relative;background:var(--noir);}
+  .notch{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:104px;height:26px;
+    background:#000;border-radius:16px;z-index:40;}
+  .cap{position:absolute;bottom:-30px;width:100%;text-align:center;font-size:12px;color:var(--muted);
+    letter-spacing:.14em;text-transform:uppercase;}
+  .pad{padding:52px 18px 18px;height:100%;overflow:hidden;display:flex;flex-direction:column;}
+  .circ{width:38px;height:38px;border-radius:50%;background:rgba(244,237,228,.08);
+    border:1px solid rgba(244,237,228,.14);display:flex;align-items:center;justify-content:center;
+    color:var(--ivory);font-size:16px;}
+  .row{display:flex;align-items:center;justify-content:space-between;}
+  .scr-title{font-family:var(--serif);font-size:34px;font-weight:600;letter-spacing:.5px;}
+  .scr-title em{font-style:italic;color:var(--gold-soft);}
+  .eyebrow{letter-spacing:.28em;text-transform:uppercase;font-size:10px;color:var(--gold);font-weight:600;}
+  .chips{display:flex;gap:8px;overflow:hidden;}
+  .chip{white-space:nowrap;padding:8px 14px;border-radius:20px;font-size:12px;font-weight:500;
+    border:1px solid rgba(244,237,228,.16);color:var(--taupe);display:flex;align-items:center;gap:6px;}
+  .chip.on{background:var(--wine);border-color:var(--wine);color:var(--ivory);}
+  .chip.on .x{opacity:.7;}
+  /* shelf */
+  .shelf-label{display:flex;align-items:center;justify-content:space-between;margin:18px 2px 10px;}
+  .shelf-label span{font-family:var(--serif);font-size:19px;color:var(--ivory);}
+  .shelf-label .cnt{font-size:11px;color:var(--muted);letter-spacing:.1em;}
+  .shelf{display:flex;gap:10px;position:relative;padding-bottom:12px;}
+  .shelf::after{content:"";position:absolute;left:-18px;right:-18px;bottom:0;height:1px;
+    background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.5;}
+  .garment{min-width:96px;height:120px;border-radius:14px;background:var(--ivory);
+    display:flex;align-items:flex-end;padding:8px;position:relative;flex-shrink:0;overflow:hidden;}
+  .garment i{position:absolute;top:36%;left:50%;transform:translate(-50%,-50%);font-size:34px;opacity:.85;}
+  .garment .tag{font-size:10px;color:#4a3a30;font-weight:600;line-height:1.2;}
+  .g1{background:linear-gradient(160deg,#f4ede4,#e9d9c4);} .g1 i{color:#8E1D2C;}
+  .g2{background:linear-gradient(160deg,#e7c7cb,#caa0a6);} .g2 i{color:#5a1622;}
+  .g3{background:linear-gradient(160deg,#cdd7cf,#a7b8ac);} .g3 i{color:#33463b;}
+  .g4{background:linear-gradient(160deg,#e8dcc8,#cdb98f);} .g4 i{color:#7a5c1e;}
+  .g5{background:linear-gradient(160deg,#c9b7d6,#a487bd);} .g5 i{color:#4a3560;}
+  /* drawers */
+  .drawers{display:flex;gap:10px;margin-top:16px;}
+  .drawer{flex:1;border:1px solid #33262a;border-radius:14px;padding:12px;background:var(--charcoal);
+    display:flex;flex-direction:column;gap:6px;}
+  .drawer i{font-size:20px;color:var(--gold);}
+  .drawer .dn{font-family:var(--serif);font-size:16px;}
+  .drawer .dc{font-size:10px;color:var(--muted);}
+  /* tab bar */
+  .tabs{position:absolute;bottom:16px;left:16px;right:16px;height:58px;border-radius:26px;
+    background:rgba(36,27,30,.92);border:1px solid #3a2b2f;display:flex;align-items:center;
+    justify-content:space-around;z-index:30;backdrop-filter:blur(6px);}
+  .tabs i{font-size:20px;color:var(--muted);}
+  .tabs .act{color:var(--gold);}
+  .fab{position:absolute;bottom:88px;right:20px;width:52px;height:52px;border-radius:50%;
+    background:var(--crimson);display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;
+    z-index:31;box-shadow:0 10px 24px rgba(200,16,46,.45);}
+  /* swipe stack */
+  .stack{position:relative;flex:1;margin:18px 0;}
+  .card{position:absolute;left:0;right:0;border-radius:24px;overflow:hidden;}
+  .card.back2{top:26px;height:430px;transform:scale(.9) rotate(-4deg);opacity:.5;
+    background:linear-gradient(160deg,#3a2a2e,#241b1e);}
+  .card.back1{top:14px;height:440px;transform:scale(.95) rotate(3deg);opacity:.75;
+    background:linear-gradient(160deg,#5a2730,#31212a);}
+  .card.front{top:0;height:452px;background:linear-gradient(165deg,#7a2a34 0%,#2a1a1e 60%);
+    border:1px solid rgba(201,162,75,.35);display:flex;flex-direction:column;justify-content:flex-end;}
+  .card.front i.big{position:absolute;top:30%;left:50%;transform:translate(-50%,-50%);
+    font-size:120px;color:rgba(244,237,228,.16);}
+  .match{position:absolute;top:16px;right:16px;background:rgba(14,11,12,.72);border:1px solid rgba(201,162,75,.4);
+    padding:6px 12px;border-radius:16px;font-size:12px;font-weight:600;color:var(--gold-soft);
+    display:flex;align-items:center;gap:5px;}
+  .overlay{padding:18px;background:linear-gradient(0deg,rgba(14,11,12,.92),transparent);}
+  .otag{display:inline-block;background:var(--gold);color:#3a2b0e;font-size:10px;font-weight:600;
+    padding:3px 9px;border-radius:8px;margin-bottom:8px;letter-spacing:.05em;}
+  .oname{font-family:var(--serif);font-size:26px;font-weight:600;line-height:1.05;}
+  .ometa{font-size:11px;color:var(--taupe);margin-top:4px;letter-spacing:.04em;}
+  .why{margin-top:10px;padding:9px 11px;border-radius:12px;background:rgba(244,237,228,.1);
+    font-size:11px;color:#efe6db;line-height:1.45;display:flex;gap:7px;}
+  .why i{color:var(--gold-soft);font-size:14px;flex-shrink:0;}
+  .acts{display:flex;justify-content:center;gap:22px;margin-top:6px;}
+  .act-btn{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:24px;border:1px solid #3a2b2f;background:var(--charcoal);}
+  .act-btn.no{color:#d9808a;} .act-btn.yes{background:var(--wine);border-color:var(--wine);color:#fff;}
+  .act-btn.info{width:44px;height:44px;font-size:18px;color:var(--taupe);}
+  /* inspo / occasion grid */
+  .occ-hero{border-radius:20px;overflow:hidden;position:relative;height:150px;margin-bottom:14px;
+    background:linear-gradient(160deg,#8E1D2C,#2a1418);display:flex;align-items:flex-end;padding:16px;
+    border:1px solid rgba(201,162,75,.25);}
+  .occ-hero .arch{position:absolute;top:-40px;right:-20px;width:150px;height:180px;border-radius:0 0 999px 999px;
+    background:rgba(201,162,75,.14);}
+  .occ-hero h3{font-family:var(--serif);font-size:26px;font-weight:600;position:relative;}
+  .occ-hero .d{font-size:11px;color:var(--gold-soft);letter-spacing:.16em;text-transform:uppercase;position:relative;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .tile{border-radius:16px;height:132px;position:relative;overflow:hidden;display:flex;align-items:flex-end;padding:10px;}
+  .tile i.gi{position:absolute;top:34%;left:50%;transform:translate(-50%,-50%);font-size:36px;color:rgba(255,255,255,.85);}
+  .tile .heart{position:absolute;top:9px;right:9px;width:26px;height:26px;border-radius:50%;
+    background:rgba(14,11,12,.5);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--gold-soft);}
+  .tile .plus{position:absolute;bottom:9px;right:9px;width:26px;height:26px;border-radius:50%;
+    background:rgba(14,11,12,.55);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;}
+  .tile .lab{font-size:11px;font-weight:600;color:#fff;position:relative;text-shadow:0 1px 4px rgba(0,0,0,.5);}
+  .t1{background:linear-gradient(160deg,#a83244,#5a1622);} .t2{background:linear-gradient(160deg,#c99a4b,#7a5c1e);}
+  .t3{background:linear-gradient(160deg,#4a6b58,#28382f);} .t4{background:linear-gradient(160deg,#8a5a7a,#3f2740);}
+  .foot{max-width:1100px;margin-top:60px;text-align:center;color:var(--muted);font-size:12px;line-height:1.7;}
+  .foot b{color:var(--taupe);font-weight:500;}
+</style>
+</head>
+<body>
+  <div class="head">
+    <div class="kicker">Kloset · UI Direction</div>
+    <h1>Atelier <em>Noir</em></h1>
+    <p class="sub">A synthesis of the three references — the dark editorial mood and removable-chip moodboard of the nail studio, the uppercase-serif luxury and arches of the real-estate app, and the tilted card-stack of the community app — recast for an Indian wardrobe, with gold bridging crimson to couture.</p>
+  </div>
+
+  <div class="legend">
+    <div class="swatch"><span class="dot" style="background:#0E0B0C"></span>Noir #0E0B0C</div>
+    <div class="swatch"><span class="dot" style="background:#8E1D2C"></span>Wine #8E1D2C</div>
+    <div class="swatch"><span class="dot" style="background:#C8102E"></span>Crimson #C8102E</div>
+    <div class="swatch"><span class="dot" style="background:#C9A24B"></span>Gold #C9A24B</div>
+    <div class="swatch"><span class="dot" style="background:#F4EDE4"></span>Ivory #F4EDE4</div>
+    <div class="swatch"><span class="dot" style="background:#B8A99C"></span>Taupe #B8A99C</div>
+    <div class="type-note">
+      <div><div class="s">Cormorant</div><div class="n">Display serif · headers</div></div>
+      <div><div class="s" style="font-family:var(--sans);font-size:18px;font-weight:600">Inter</div><div class="n">Sans · UI &amp; body</div></div>
+    </div>
+  </div>
+
+  <div class="rack">
+
+    <!-- SCREEN 1: CLOSET -->
+    <div class="phone">
+      <div class="screen">
+        <div class="notch"></div>
+        <div class="pad">
+          <div class="row">
+            <div>
+              <div class="eyebrow">Your wardrobe</div>
+              <div class="scr-title">My <em>Closet</em></div>
+            </div>
+            <div class="circ">☰</div>
+          </div>
+
+          <div class="shelf-label"><span>Everyday</span><span class="cnt">12 pieces →</span></div>
+          <div class="shelf">
+            <div class="garment g1"><span class="tag">Ivory kurta</span></div>
+            <div class="garment g3"><span class="tag">Olive palazzo</span></div>
+            <div class="garment g2"><span class="tag">Rose top</span></div>
+            <div class="garment g4"><span class="tag">Beige co-ord</span></div>
+          </div>
+
+          <div class="shelf-label"><span>Festive</span><span class="cnt">8 pieces →</span></div>
+          <div class="shelf">
+            <div class="garment g2"><span class="tag">Maroon saree</span></div>
+            <div class="garment g4"><span class="tag">Gold lehenga</span></div>
+            <div class="garment g5"><span class="tag">Plum anarkali</span></div>
+            <div class="garment g1"><span class="tag">Cream sharara</span></div>
+          </div>
+
+          <div class="drawers">
+            <div class="drawer"><span class="dn">Footwear</span><span class="dc">Juttis · heels · flats</span></div>
+            <div class="drawer"><span class="dn">Accessories</span><span class="dc">Bags · jewellery</span></div>
+          </div>
+        </div>
+        <div class="fab">+</div>
+        <div class="tabs">
+          <span class="act">▣</span><span>♡</span><span>◈</span><span>☰</span>
+        </div>
+      </div>
+      <div class="cap">01 · Closet — shelves &amp; drawers</div>
+    </div>
+
+    <!-- SCREEN 2: DISCOVER SWIPE -->
+    <div class="phone">
+      <div class="screen">
+        <div class="notch"></div>
+        <div class="pad">
+          <div class="row">
+            <div><div class="eyebrow">Learn your taste</div><div class="scr-title">Discover</div></div>
+            <div class="circ">↻</div>
+          </div>
+          <div class="chips" style="margin-top:16px;">
+            <div class="chip on">Sangeet <span class="x">×</span></div>
+            <div class="chip">Mehendi</div>
+            <div class="chip">Brunch</div>
+          </div>
+
+          <div class="stack">
+            <div class="card back2"></div>
+            <div class="card back1"></div>
+            <div class="card front">
+              <div class="match">✦ 92% match</div>
+              <div class="overlay">
+                <span class="otag">Fusion · Festive</span>
+                <div class="oname">Wine georgette<br>sharara set</div>
+                <div class="ometa">Party · Moderate · All-season · Gold + Wine</div>
+                <div class="why"><span>✦</span><span>Wine reads rich under sangeet lighting; the gold gota ties to your warm undertone without upstaging the bride.</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="acts">
+            <div class="act-btn no">✕</div>
+            <div class="act-btn info">ⓘ</div>
+            <div class="act-btn yes">♥</div>
+          </div>
+        </div>
+      </div>
+      <div class="cap">02 · Discover — tinder swipe stack</div>
+    </div>
+
+    <!-- SCREEN 3: OCCASION / INSPO -->
+    <div class="phone">
+      <div class="screen">
+        <div class="notch"></div>
+        <div class="pad">
+          <div class="row">
+            <div><div class="eyebrow">Dress for the moment</div><div class="scr-title">Occasion</div></div>
+            <div class="circ">♡</div>
+          </div>
+
+          <div class="occ-hero" style="margin-top:16px;">
+            <div class="arch"></div>
+            <div>
+              <div class="d">From your closet</div>
+              <h3>Mehendi Function</h3>
+            </div>
+          </div>
+
+          <div class="grid">
+            <div class="tile t2"><span class="heart">♡</span><span class="plus">+</span><span class="lab">Marigold kurta set</span></div>
+            <div class="tile t1"><span class="heart">♥</span><span class="plus">+</span><span class="lab">Coral organza</span></div>
+            <div class="tile t3"><span class="heart">♡</span><span class="plus">+</span><span class="lab">Mint sharara</span></div>
+            <div class="tile t4"><span class="heart">♡</span><span class="plus">+</span><span class="lab">Plum co-ord</span></div>
+          </div>
+        </div>
+        <div class="tabs">
+          <span>▣</span><span class="act">♡</span><span>◈</span><span>☰</span>
+        </div>
+      </div>
+      <div class="cap">03 · Occasion — suggestions grid</div>
+    </div>
+
+  </div>
+
+  <div class="foot">
+    <b>How to read this:</b> colours, type and components are the extraction — not final screens. Fonts load from Google Fonts; if offline, the serif falls back to Georgia.<br>
+    Built as a reference for Phase 6 of the Kloset build. Blend, don't copy: the direction is <b>dark editorial + crimson/gold + serif display</b>, expressed through shelves, a swipe stack, and an occasion grid.
+  </div>
+</body>
+</html>

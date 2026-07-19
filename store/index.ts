@@ -1,11 +1,11 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { 
-  UserStyleProfile, Height, BodyShape, SkinTone, Undertone, StylePreference, 
-  WardrobeItem, Category, Fit, Fabric, Length, Pattern, Neckline, Sleeve, 
+import {
+  UserStyleProfile, Height, BodyShape, SkinTone, Undertone, StylePreference,
+  WardrobeItem, Category, Fit, Fabric, Length, Pattern, Neckline, Sleeve,
   Season, Color, CoveragePreference, OccasionFrequency, ColorComfort,
-  SwipeHistoryItem
+  SwipeHistoryItem, ClosetSection, SectionKind
 } from '../types';
 import { api, setAuthToken } from '../lib';
 
@@ -20,10 +20,18 @@ interface AppState {
   login: (email: string, password?: string) => Promise<void>;
   signup: (email: string, password?: string, name?: string) => Promise<void>;
   saveProfile: (profileData: Partial<UserStyleProfile>) => Promise<void>;
-  addWardrobeItem: (item: Omit<WardrobeItem, 'id' | 'userId' | 'createdAt'>) => Promise<void>;
+  addWardrobeItem: (item: Omit<WardrobeItem, 'id' | 'userId' | 'createdAt'>) => Promise<WardrobeItem[]>;
   recordSwipe: (outfitId: string, direction: 'like' | 'dislike') => Promise<void>;
   fetchSwipeHistory: () => Promise<void>;
   signOut: () => Promise<void>;
+  // Closet sections (shelves & drawers)
+  sections: ClosetSection[];
+  fetchSections: () => Promise<void>;
+  createSection: (name: string, kind: SectionKind) => Promise<void>;
+  renameSection: (id: string, name: string) => Promise<void>;
+  reorderSections: (orderedIds: string[]) => Promise<void>;
+  deleteSection: (id: string) => Promise<void>;
+  moveItemToSection: (itemId: string, sectionId: string) => Promise<void>;
 }
 
 const customStorage = {
@@ -168,17 +176,72 @@ export const useAppStore = create<AppState>()(
       addWardrobeItem: async (item) => {
         console.log('[KLOSET-DEBUG] addWardrobeItem triggered with item:', { ...item, imageUrl: item.imageUrl.substring(0, 100) });
         try {
-          const newItem = await api.addWardrobeItem(item);
+          // One upload may create multiple items (worn photo split into
+          // top + bottom by the extraction pipeline) — append them all.
+          const newItems = await api.addWardrobeItem(item);
           set((state) => ({
-            wardrobeItems: [
-              ...state.wardrobeItems,
-              newItem
-            ]
+            wardrobeItems: [...state.wardrobeItems, ...newItems]
           }));
+          return newItems;
         } catch (err) {
           console.error('[KLOSET-DEBUG] Failed to sync wardrobe item to Express backend:', err);
           throw err;
         }
+      },
+
+      // --- Closet sections (shelves & drawers) ---
+      sections: [],
+
+      fetchSections: async () => {
+        if (!get().isAuthenticated) return;
+        try {
+          const sections = await api.getSections();
+          set({ sections });
+        } catch (err) {
+          console.error('[KLOSET-DEBUG] Failed to fetch sections:', err);
+        }
+      },
+
+      createSection: async (name, kind) => {
+        await api.createSection(name, kind);
+        await get().fetchSections();
+      },
+
+      renameSection: async (id, name) => {
+        await api.renameSection(id, name);
+        set((state) => ({
+          sections: state.sections.map((s) => (s.id === id ? { ...s, name } : s)),
+        }));
+      },
+
+      reorderSections: async (orderedIds) => {
+        // Optimistic: reorder locally first so drag-to-reorder feels instant
+        set((state) => ({
+          sections: [...state.sections].sort(
+            (a, b) => orderedIds.indexOf(a.id) - orderedIds.indexOf(b.id)
+          ),
+        }));
+        await api.reorderSections(orderedIds);
+      },
+
+      deleteSection: async (id) => {
+        await api.deleteSection(id);
+        // Items were reassigned server-side; refresh both lists
+        await get().fetchSections();
+        try {
+          const items = await api.fetchWardrobeItems();
+          set({ wardrobeItems: items });
+        } catch (err) {
+          console.warn('[KLOSET-DEBUG] Wardrobe refresh after section delete failed:', err);
+        }
+      },
+
+      moveItemToSection: async (itemId, sectionId) => {
+        const updated = await api.moveItemToSection(itemId, sectionId);
+        set((state) => ({
+          wardrobeItems: state.wardrobeItems.map((w) => (w.id === itemId ? updated : w)),
+          sections: state.sections, // counts refresh on next fetchSections
+        }));
       },
 
       recordSwipe: async (outfitId, direction) => {

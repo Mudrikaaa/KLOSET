@@ -1,0 +1,13 @@
+# Light core — background removal + API (installs in a couple of minutes)
+fastapi
+uvicorn[standard]
+python-multipart
+pillow
+numpy
+rembg[cpu]
+
+# Heavy optional — garment parsing (torch is multi-GB; the service runs
+# without these, /parse just reports unavailable and the backend falls back
+# to whole-subject cutouts)
+# torch --index-url https://download.pytorch.org/whl/cpu
+# transformers
