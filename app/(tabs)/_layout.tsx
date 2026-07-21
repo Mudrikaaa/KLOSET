@@ -1,54 +1,46 @@
 import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
-import { Shirt, Sparkles, FolderHeart, User } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ShoppingBag, WandSparkles, FolderHeart, User } from 'lucide-react-native';
 
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
+import { Crimson, Fonts } from '@/constants/Colors';
 
+// Crimson redesign nav (KlosetNav.dc.html): dark glass bar, active #f9314f,
+// inactive 50% white, 22px icons, tiny bold labels.
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme];
-
+  // why insets: on gesture-nav Androids the system home bar overlapped the
+  // bar and clipped every label; the bar must grow by the bottom inset.
+  const insets = useSafeAreaInsets();
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: theme.tint,
-        tabBarInactiveTintColor: theme.tabIconDefault,
+        headerShown: false,
+        tabBarActiveTintColor: Crimson.tabActive,
+        tabBarInactiveTintColor: 'rgba(255,255,255,0.5)',
         tabBarStyle: {
-          backgroundColor: theme.card,
-          borderTopColor: theme.border,
-          elevation: 8,
-          shadowOpacity: 0.1,
-          shadowRadius: 10,
+          backgroundColor: Crimson.navBg,
+          borderTopColor: 'rgba(255,255,255,0.1)',
+          borderTopWidth: 1,
+          elevation: 12,
+          shadowOpacity: 0.4,
+          shadowRadius: 12,
           shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          height: Platform.OS === 'ios' ? 88 : 64,
-          paddingBottom: Platform.OS === 'ios' ? 28 : 10,
+          shadowOffset: { width: 0, height: -6 },
+          height: 62 + insets.bottom,
+          paddingBottom: 10 + insets.bottom,
           paddingTop: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
+          fontSize: 9.5,
+          fontFamily: Fonts.body,
+          letterSpacing: 0.2,
         },
-        headerStyle: {
-          backgroundColor: theme.card,
-          borderBottomColor: theme.border,
-        },
-        headerTitleStyle: {
-          color: theme.text,
-          fontSize: 18,
-          fontWeight: '700',
-        },
-        headerShadowVisible: false,
       }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Wardrobe',
           tabBarLabel: 'Wardrobe',
-          tabBarIcon: ({ color, size }) => (
-            <Shirt color={color} size={size ?? 24} strokeWidth={2} />
-          ),
+          tabBarIcon: ({ color }) => <ShoppingBag color={color} size={22} strokeWidth={2} />,
         }}
       />
       <Tabs.Screen
@@ -56,9 +48,7 @@ export default function TabLayout() {
         options={{
           title: 'Discover',
           tabBarLabel: 'Discover',
-          tabBarIcon: ({ color, size }) => (
-            <Sparkles color={color} size={size ?? 24} strokeWidth={2} />
-          ),
+          tabBarIcon: ({ color }) => <WandSparkles color={color} size={22} strokeWidth={2} />,
         }}
       />
       <Tabs.Screen
@@ -66,9 +56,7 @@ export default function TabLayout() {
         options={{
           title: 'Occasions',
           tabBarLabel: 'Occasions',
-          tabBarIcon: ({ color, size }) => (
-            <FolderHeart color={color} size={size ?? 24} strokeWidth={2} />
-          ),
+          tabBarIcon: ({ color }) => <FolderHeart color={color} size={22} strokeWidth={2} />,
         }}
       />
       <Tabs.Screen
@@ -76,12 +64,9 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarLabel: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <User color={color} size={size ?? 24} strokeWidth={2} />
-          ),
+          tabBarIcon: ({ color }) => <User color={color} size={22} strokeWidth={2} />,
         }}
       />
     </Tabs>
   );
 }
-

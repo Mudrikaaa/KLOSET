@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, View as RNView } from 'react-native';
-import { Text, View } from '@/components/Themed';
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
+import {
+  StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView,
+  Platform, View, Text, Image,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { Mail, Lock, ArrowRight } from 'lucide-react-native';
+import { Crimson, Fonts } from '@/constants/Colors';
 import { useAppStore } from '@/store';
-import { Sparkles, Mail, Lock, ArrowRight } from 'lucide-react-native';
 
+// Sign in — Crimson redesign (Phone G): crimson-to-onyx gradient, blush logo
+// tile with the heel mark, dark glass card, white CTA.
 export default function LoginScreen() {
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme];
   const router = useRouter();
   const login = useAppStore((state) => state.login);
 
@@ -34,205 +36,129 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-      style={{ flex: 1 }}
-    >
-      <ScrollView 
-        contentContainerStyle={[styles.scrollContainer, { backgroundColor: theme.background }]}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Brand Logo Section */}
-        <View style={styles.logoSection}>
-          <View style={[styles.logoCircle, { backgroundColor: `${theme.tint}15` }]}>
-            <Sparkles size={40} color={theme.tint} />
+    <View style={styles.screen}>
+      <LinearGradient
+        colors={[...Crimson.signInBg]}
+        locations={[0, 0.38, 0.85]}
+        start={{ x: 0.2, y: 0 }} end={{ x: 0.75, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          {/* brand */}
+          <View style={styles.brand}>
+            <View style={styles.logoTile}>
+              <Image source={require('../../assets/images/kloset-heel-red.png')} style={styles.logoImg} />
+            </View>
+            <Text style={styles.brandName}>KLOSET</Text>
+            <Text style={styles.tagline}>Your AI Personal Stylist</Text>
           </View>
-          <Text style={[styles.brandName, { color: theme.text }]}>KLOSET</Text>
-          <Text style={[styles.tagline, { color: theme.tabIconDefault }]}>Your AI Personal Stylist</Text>
-        </View>
 
-        {/* Card Section */}
-        <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <Text style={[styles.cardTitle, { color: theme.text }]}>Welcome Back</Text>
-          <Text style={[styles.cardSubtitle, { color: theme.tabIconDefault }]}>Sign in to your virtual wardrobe</Text>
+          {/* glass card */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Welcome Back</Text>
+            <Text style={styles.cardSub}>Sign in to your virtual wardrobe</Text>
 
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-          {/* Email Input */}
-          <RNView style={styles.inputWrapper}>
-            <RNView style={[styles.iconBox, { borderRightColor: theme.border }]}>
-              <Mail size={18} color={theme.tabIconDefault} />
-            </RNView>
-            <TextInput
-              placeholder="Email Address"
-              placeholderTextColor={theme.tabIconDefault}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              editable={!loading}
-              style={[styles.input, { color: theme.text }]}
-            />
-          </RNView>
+            <View style={styles.inputWrap}>
+              <View style={styles.iconBox}>
+                <Mail size={17} color="rgba(255,255,255,0.7)" />
+              </View>
+              <TextInput
+                placeholder="Email Address"
+                placeholderTextColor="rgba(255,255,255,0.55)"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                editable={!loading}
+                style={styles.input}
+              />
+            </View>
 
-          {/* Password Input */}
-          <RNView style={styles.inputWrapper}>
-            <RNView style={[styles.iconBox, { borderRightColor: theme.border }]}>
-              <Lock size={18} color={theme.tabIconDefault} />
-            </RNView>
-            <TextInput
-              placeholder="Password"
-              placeholderTextColor={theme.tabIconDefault}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-              editable={!loading}
-              style={[styles.input, { color: theme.text }]}
-            />
-          </RNView>
+            <View style={styles.inputWrap}>
+              <View style={styles.iconBox}>
+                <Lock size={17} color="rgba(255,255,255,0.7)" />
+              </View>
+              <TextInput
+                placeholder="Password"
+                placeholderTextColor="rgba(255,255,255,0.55)"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                autoCapitalize="none"
+                editable={!loading}
+                style={styles.input}
+              />
+            </View>
 
-          {/* Forget Password */}
-          <TouchableOpacity style={styles.forgotBtn} disabled={loading}>
-            <Text style={[styles.forgotText, { color: theme.tint }]}>Forgot Password?</Text>
-          </TouchableOpacity>
-
-          {/* Login Button */}
-          <TouchableOpacity 
-            onPress={handleLogin}
-            disabled={loading}
-            style={[styles.loginBtn, { backgroundColor: loading ? theme.tabIconDefault : theme.tint }]}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.loginBtnText}>{loading ? 'Signing In...' : 'Sign In'}</Text>
-            {!loading && <ArrowRight size={18} color="#FFFFFF" />}
-          </TouchableOpacity>
-
-          {/* Sign Up Link */}
-          <RNView style={styles.signupPrompt}>
-            <Text style={[styles.promptText, { color: theme.tabIconDefault }]}>Don't have an account? </Text>
-            <TouchableOpacity onPress={() => router.push('/auth/signup')} disabled={loading}>
-              <Text style={[styles.promptAction, { color: theme.tint }]}>Sign Up</Text>
+            <TouchableOpacity style={styles.forgotBtn} disabled={loading}>
+              <Text style={styles.forgotText}>Forgot Password?</Text>
             </TouchableOpacity>
-          </RNView>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+
+            <TouchableOpacity onPress={handleLogin} disabled={loading} activeOpacity={0.9} style={styles.signInBtn}>
+              <Text style={styles.signInText}>{loading ? 'Signing In…' : 'Sign In'}</Text>
+              {!loading && <ArrowRight size={17} color={Crimson.crimsonDeep} strokeWidth={2.4} />}
+            </TouchableOpacity>
+
+            <View style={styles.signupRow}>
+              <Text style={styles.signupPrompt}>Don't have an account? </Text>
+              <TouchableOpacity onPress={() => router.push('/auth/signup')} disabled={loading}>
+                <Text style={styles.signupAction}>Sign Up</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContainer: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: 24,
+  screen: { flex: 1, backgroundColor: '#8c0a20' },
+  scroll: { flexGrow: 1, justifyContent: 'center', padding: 20, paddingTop: 60 },
+  brand: { alignItems: 'center', marginBottom: 30 },
+  logoTile: {
+    width: 76, height: 76, borderRadius: 24, backgroundColor: '#f3ece7',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)',
+    alignItems: 'center', justifyContent: 'center', marginBottom: 14,
+    shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 8 }, elevation: 8,
   },
-  logoSection: {
-    alignItems: 'center',
-    marginBottom: 32,
-    backgroundColor: 'transparent',
-  },
-  logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  brandName: {
-    fontSize: 28,
-    fontWeight: '900',
-    letterSpacing: 2,
-  },
-  tagline: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginTop: 4,
-  },
+  logoImg: { width: 48, height: 34, resizeMode: 'contain' },
+  brandName: { color: '#fff', fontFamily: Fonts.display, fontSize: 30, letterSpacing: 4 },
+  tagline: { color: 'rgba(255,255,255,0.8)', fontFamily: Fonts.bodyMed, fontSize: 12.5, marginTop: 5 },
+
   card: {
-    borderRadius: 24,
-    borderWidth: 1,
-    padding: 24,
+    backgroundColor: 'rgba(20,8,10,0.36)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 24, padding: 22, paddingHorizontal: 20,
   },
-  cardTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    marginBottom: 4,
-  },
-  cardSubtitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 20,
-  },
-  errorText: {
-    color: '#EF4444',
-    fontSize: 13,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    marginBottom: 14,
-    height: 52,
-    overflow: 'hidden',
+  cardTitle: { color: '#fff', fontFamily: Fonts.display, fontSize: 21 },
+  cardSub: { color: 'rgba(255,255,255,0.68)', fontFamily: Fonts.bodyMed, fontSize: 12, marginTop: 4, marginBottom: 18 },
+  errorText: { color: Crimson.roseLink, fontFamily: Fonts.body, fontSize: 12.5, marginBottom: 12 },
+
+  inputWrap: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 13, overflow: 'hidden', marginBottom: 12, height: 50,
   },
   iconBox: {
-    width: 46,
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRightWidth: 1,
+    width: 46, height: '100%', alignItems: 'center', justifyContent: 'center',
+    borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.16)',
   },
-  input: {
-    flex: 1,
-    height: '100%',
-    paddingHorizontal: 12,
-    fontSize: 14,
-    fontWeight: '500',
+  input: { flex: 1, paddingHorizontal: 12, color: '#fff', fontFamily: Fonts.bodyMed, fontSize: 13, height: '100%' },
+
+  forgotBtn: { alignSelf: 'flex-end', marginBottom: 18 },
+  forgotText: { color: Crimson.roseLink, fontFamily: Fonts.body, fontSize: 12 },
+
+  signInBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: '#fff', borderRadius: 13, paddingVertical: 15,
+    shadowColor: '#000', shadowOpacity: 0.45, shadowRadius: 13, shadowOffset: { width: 0, height: 10 }, elevation: 8,
   },
-  forgotBtn: {
-    alignSelf: 'flex-end',
-    marginBottom: 20,
-  },
-  forgotText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  loginBtn: {
-    flexDirection: 'row',
-    height: 52,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  loginBtnText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  signupPrompt: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 20,
-    backgroundColor: 'transparent',
-  },
-  promptText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  promptAction: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
+  signInText: { color: Crimson.crimsonDeep, fontFamily: Fonts.bodyBold, fontSize: 14 },
+
+  signupRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 18 },
+  signupPrompt: { color: 'rgba(255,255,255,0.7)', fontFamily: Fonts.bodyMed, fontSize: 12 },
+  signupAction: { color: '#fff', fontFamily: Fonts.bodyBold, fontSize: 12 },
 });

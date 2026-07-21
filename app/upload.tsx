@@ -6,6 +6,9 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '@/store';
 import { Camera, Image as ImageIcon, X, Check, Tag, ChevronDown, ChevronUp, Sparkles } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Crimson, Fonts } from '@/constants/Colors';
 import { api } from '@/lib';
 import type { DetectedGarment } from '@/lib/api';
 import * as ImagePicker from 'expo-image-picker';
@@ -89,9 +92,11 @@ const INDIAN_OCCASIONS = [
 const AUTO_SECTION = 'Auto (pick for me)';
 
 export default function UploadScreen() {
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme];
+  // why Colors.light: Add Garment is the design's one blush room — the app
+  // is pinned dark globally, so this screen opts into the light tokens.
+  const theme = Colors.light;
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const addWardrobeItem = useAppStore((state) => state.addWardrobeItem);
 
   // Shelves & drawers — where this item will live
@@ -346,35 +351,46 @@ export default function UploadScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-      style={{ flex: 1 }}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1, backgroundColor: Crimson.blushBg }}
     >
-      <ScrollView 
-        style={[styles.container, { backgroundColor: theme.background }]}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Header Close Row */}
-        <RNView style={styles.headerRow}>
-          <Text style={[styles.title, { color: theme.text }]}>Add New Item</Text>
-          <TouchableOpacity 
-            onPress={() => router.back()} 
+      {/* Crimson header band (Phone E) — ends mid-photo, blush below */}
+      <LinearGradient
+        colors={[...Crimson.headerBand]}
+        start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }}
+        style={[crimsonStyles.band, { height: insets.top + 160 }]}
+      />
+
+      {/* FIXED header + photo (design: only the form below this scrolls) */}
+      <RNView style={{ paddingHorizontal: 20 }}>
+        <RNView style={[crimsonStyles.headerRow, { marginTop: insets.top + 6 }]}>
+          <TouchableOpacity
+            onPress={() => router.back()}
             disabled={loading}
-            style={[styles.closeBtn, { backgroundColor: theme.card, borderColor: theme.border, opacity: loading ? 0.5 : 1 }]}
+            style={[crimsonStyles.closeBtn, { opacity: loading ? 0.5 : 1 }]}
           >
-            <X size={20} color={theme.text} />
+            <X size={17} color="#fff" />
           </TouchableOpacity>
+          <Text style={crimsonStyles.title}>Add Garment</Text>
+          <RNView style={{ width: 38 }} />
         </RNView>
 
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        {error ? <Text style={[styles.errorText, { color: '#fff' }]}>{error}</Text> : null}
 
-        {/* Section 1: Photo (always expanded) */}
-        <RNView style={[styles.imageArea, { backgroundColor: theme.card, borderColor: theme.border }]} pointerEvents={loading ? 'none' : 'auto'}>
+        {/* Section 1: Photo (fixed, never scrolls away) */}
+        <RNView style={[styles.imageArea, { backgroundColor: '#fff', borderColor: Crimson.chipBorder }]} pointerEvents={loading ? 'none' : 'auto'}>
           {imageUri ? (
             <RNView style={styles.previewContainer}>
               <Image source={{ uri: imageUri }} style={styles.previewImage} />
+              {(analyzing || aiFilled) && (
+                <RNView style={crimsonStyles.aiPill}>
+                  <Text style={{ color: '#f4a3b1', fontSize: 11 }}>✦</Text>
+                  <Text style={crimsonStyles.aiPillText}>
+                    {analyzing ? 'AI IS LOOKING…' : 'AI TAGGED — CONFIRM BELOW'}
+                  </Text>
+                </RNView>
+              )}
               <TouchableOpacity
                 onPress={() => {
                   setImageUri(null);
@@ -410,7 +426,15 @@ export default function UploadScreen() {
             </RNView>
           )}
         </RNView>
+      </RNView>
 
+      {/* SCROLLABLE form */}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* AI auto-detection status banner */}
         {analyzing && (
           <RNView style={[styles.aiBanner, { backgroundColor: `${theme.tint}15`, borderColor: theme.tint }]}>
@@ -429,21 +453,21 @@ export default function UploadScreen() {
 
         {/* Section 2: Basics (always expanded) */}
         <View style={styles.basicsContainer}>
-          <StyledDropdown 
+          <StyledDropdown light
             label="Category" 
             value={category} 
             options={CATEGORIES} 
             onChange={(val) => setCategory(val as Category)}
           />
 
-          <StyledDropdown
+          <StyledDropdown light
             label="Sub-type"
             value={subType}
             options={SUB_TYPES_BY_CATEGORY[category] || []}
             onChange={(val) => setSubType(val)}
           />
 
-          <StyledDropdown
+          <StyledDropdown light
             label="Store in (shelf / drawer)"
             value={sectionChoice}
             options={sectionOptions}
@@ -517,16 +541,16 @@ export default function UploadScreen() {
 
         {!collapsed.details && (
           <View style={[styles.collapsibleContent, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <StyledDropdown label="Fit" value={fit} options={FITS} onChange={(val) => setFit(val as Fit)} />
-            <StyledDropdown label="Fabric" value={fabric} options={FABRICS} onChange={(val) => setFabric(val as Fabric)} />
-            <StyledDropdown label="Length" value={length} options={LENGTHS} onChange={(val) => setLength(val as Length)} />
-            <StyledDropdown label="Neckline" value={neckline} options={NECKLINES} onChange={(val) => setNeckline(val as Neckline)} />
-            <StyledDropdown label="Sleeve" value={sleeve} options={SLEEVES} onChange={(val) => setSleeve(val as Sleeve)} />
-            <StyledDropdown label="Structure" value={structure} options={STRUCTURES} onChange={(val) => setStructure(val as Structure)} />
-            <StyledDropdown label="Opacity" value={opacity} options={OPACITIES} onChange={(val) => setOpacity(val as Opacity)} />
+            <StyledDropdown light label="Fit" value={fit} options={FITS} onChange={(val) => setFit(val as Fit)} />
+            <StyledDropdown light label="Fabric" value={fabric} options={FABRICS} onChange={(val) => setFabric(val as Fabric)} />
+            <StyledDropdown light label="Length" value={length} options={LENGTHS} onChange={(val) => setLength(val as Length)} />
+            <StyledDropdown light label="Neckline" value={neckline} options={NECKLINES} onChange={(val) => setNeckline(val as Neckline)} />
+            <StyledDropdown light label="Sleeve" value={sleeve} options={SLEEVES} onChange={(val) => setSleeve(val as Sleeve)} />
+            <StyledDropdown light label="Structure" value={structure} options={STRUCTURES} onChange={(val) => setStructure(val as Structure)} />
+            <StyledDropdown light label="Opacity" value={opacity} options={OPACITIES} onChange={(val) => setOpacity(val as Opacity)} />
             
             {isBottomCategory && (
-              <StyledDropdown 
+              <StyledDropdown light
                 label="Waist Position" 
                 value={waistPosition} 
                 options={WAIST_POSITIONS} 
@@ -549,8 +573,8 @@ export default function UploadScreen() {
 
             {!collapsed.ethnic && (
               <View style={[styles.collapsibleContent, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                <StyledDropdown label="Embellishment / Craft" value={embellishment} options={EMBELLISHMENTS} onChange={(val) => setEmbellishment(val as Embellishment)} />
-                <StyledDropdown label="Pattern" value={pattern} options={PATTERNS} onChange={(val) => setPattern(val as Pattern)} />
+                <StyledDropdown light label="Embellishment / Craft" value={embellishment} options={EMBELLISHMENTS} onChange={(val) => setEmbellishment(val as Embellishment)} />
+                <StyledDropdown light label="Pattern" value={pattern} options={PATTERNS} onChange={(val) => setPattern(val as Pattern)} />
               </View>
             )}
           </>
@@ -649,13 +673,14 @@ export default function UploadScreen() {
         </RNView>
 
         {/* Submit Button */}
-        <TouchableOpacity 
-          onPress={handleUpload}
-          disabled={loading}
-          style={[styles.submitBtn, { backgroundColor: loading ? theme.tabIconDefault : theme.accent }]}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.submitBtnText}>{loading ? 'Saving & Uploading...' : 'Add to Closet'}</Text>
+        <TouchableOpacity onPress={handleUpload} disabled={loading} activeOpacity={0.9}>
+          <LinearGradient
+            colors={loading ? ['#c9a3ab', '#b58a93'] : [...Crimson.headerBand]}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0.3 }}
+            style={styles.submitBtn}
+          >
+            <Text style={styles.submitBtnText}>{loading ? 'Saving & Uploading…' : 'Save to Kloset'}</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </ScrollView>
 
@@ -674,11 +699,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollContent: {
-    padding: 20,
-    paddingTop: Platform.OS === 'ios' ? 40 : 20,
-    paddingBottom: 60,
-  },
+  scrollContent: { padding: 20, paddingTop: 4, paddingBottom: 60 },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -912,4 +933,25 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
+});
+
+// Crimson redesign (Phone E) — header band, centered title, AI pill on image
+const crimsonStyles = StyleSheet.create({
+  band: {
+    position: 'absolute', top: 0, left: 0, right: 0, height: 170,
+  },
+  headerRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginBottom: 18, backgroundColor: 'transparent',
+  },
+  closeBtn: {
+    width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  title: { color: '#fff', fontFamily: Fonts.display, fontSize: 18 },
+  aiPill: {
+    position: 'absolute', left: 12, top: 12, flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: 'rgba(14,5,7,0.7)', paddingHorizontal: 11, paddingVertical: 6, borderRadius: 999,
+  },
+  aiPillText: { color: '#fff', fontFamily: Fonts.bodyBold, fontSize: 10, letterSpacing: 0.4 },
 });

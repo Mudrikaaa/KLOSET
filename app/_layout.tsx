@@ -1,4 +1,11 @@
 import { useFonts } from 'expo-font';
+import { Sora_700Bold, Sora_800ExtraBold } from '@expo-google-fonts/sora';
+import {
+  Manrope_500Medium,
+  Manrope_600SemiBold,
+  Manrope_700Bold,
+  Manrope_800ExtraBold,
+} from '@expo-google-fonts/manrope';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
@@ -31,6 +38,13 @@ if (!__DEV__) {
 export default function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    // Crimson redesign type: Sora (display) + Manrope (body)
+    Sora_700Bold,
+    Sora_800ExtraBold,
+    Manrope_500Medium,
+    Manrope_600SemiBold,
+    Manrope_700Bold,
+    Manrope_800ExtraBold,
   });
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.

@@ -1,55 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Image, TouchableOpacity, Dimensions, Animated, ActivityIndicator, ScrollView } from 'react-native';
-import { Text, View } from '@/components/Themed';
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
-import { Heart, X, Sparkles, RefreshCw, Info } from 'lucide-react-native';
-import { Outfit } from '@/types';
+import {
+  StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, View, Text,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Heart, X, Bookmark, RotateCw } from 'lucide-react-native';
+import { Crimson, Fonts } from '@/constants/Colors';
 import { api } from '../../lib';
 import { useAppStore } from '../../store';
+import { Outfit } from '../../types';
 
-const { width, height } = Dimensions.get('window');
-const CARD_WIDTH = width - 32;
-const CARD_HEIGHT = height * 0.58;
+// ============================================================================
+// Discover — Crimson redesign (Phone D): dark room, tilted translucent deck,
+// vertical glass action bar, floating details card overlapping the stack.
+// ============================================================================
 
-const OCCASIONS = [
-  // Festive & Family
-  'Diwali Party (Family)', 'Diwali Party (Friends)', 'Holi', 'Navratri / Garba', 'Eid', 'Regional Festival',
-  'Pooja / Temple Visit', 'Baby Shower / Godh Bharai',
-
-  // Weddings
-  'Mehendi Function', 'Sangeet Night', 'Wedding (Close Family)', 'Wedding (Guest)', 'Reception', 'Cocktail / Pre-wedding',
-  'Engagement Ceremony', 'Roka / Sagai',
-
-  // College
-  'First Day of College', 'College Farewell', 'College Fest (Day)', 'College Fest (Night)', 'College Trip', 'Internship (Startup)', 'Internship (Corporate)',
-
-  // Professional
-  'Job Interview (Tech)', 'Job Interview (Corporate)', 'Office (Startup)', 'Office (Formal)', 'Client Meeting', 'WFH / Video Call',
-
-  // Social
-  'Casual Outing', 'Mall / Shopping Day', 'Brunch / Cafe', 'Dinner Date', 'First Date', 'Night Out', 'House Party',
-  'Gym / Workout', 'Beach / Pool Day',
-
-  // Special
-  'My Birthday', "Friend's Birthday", 'Travel Day', 'Airport / Travel Look', 'Hill Station Trip', 'Heritage City Sightseeing',
-  'Graduation Day', 'Award Ceremony / Convocation', 'Anniversary Dinner'
+const OCCASION_FILTERS = [
+  'Casual Outing', 'Diwali Party (Family)', 'Wedding (Guest)', 'Sangeet Night',
+  'Mehendi Function', 'Cocktail / Pre-wedding', 'Reception', 'Brunch / Cafe',
+  'Office (Formal)', 'Job Interview (Corporate)', 'Night Out', 'My Birthday',
+  'Beach / Pool Day', 'Eid', 'Navratri / Garba', 'College Fest (Night)',
 ];
 
 export default function DiscoverScreen() {
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme];
-  // why: per the hydration rule, API effects must wait for hasHydrated so the
-  // JWT is restored before the first /suggestions call on a cold start.
-  const hasHydrated = useAppStore((state) => state.hasHydrated);
-  const isAuthenticated = useAppStore((state) => state.isAuthenticated);
+  const insets = useSafeAreaInsets();
   const [outfits, setOutfits] = useState<Outfit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [likesCount, setLikesCount] = useState(0);
-  const [dislikesCount, setDislikesCount] = useState(0);
   const [activeOccasion, setActiveOccasion] = useState('Casual Outing');
+
+  // per the hydration rule: wait for the restored JWT before the first call
+  const hasHydrated = useAppStore((state) => state.hasHydrated);
+  const isAuthenticated = useAppStore((state) => state.isAuthenticated);
 
   const fetchCatalog = (occasionName: string) => {
     setLoading(true);
@@ -61,7 +44,6 @@ export default function DiscoverScreen() {
         setLoading(false);
       })
       .catch((err) => {
-        console.error('[KLOSET-DEBUG] [DiscoverScreen] Failed to fetch outfits:', err);
         setError(err.message || 'Failed to fetch outfits');
         setLoading(false);
       });
@@ -73,485 +55,180 @@ export default function DiscoverScreen() {
   }, [activeOccasion, hasHydrated, isAuthenticated]);
 
   const handleAction = (type: 'like' | 'dislike') => {
-    if (currentIndex < outfits.length) {
-      const currentOutfit = outfits[currentIndex];
-      if (type === 'like') {
-        setLikesCount(prev => prev + 1);
-      } else {
-        setDislikesCount(prev => prev + 1);
-      }
-      
-      useAppStore.getState().recordSwipe(currentOutfit.id, type)
-        .catch((err) => {
-          console.warn('[KLOSET-DEBUG] [DiscoverScreen] Failed to record swipe:', err);
-        });
-
-      setCurrentIndex(prev => prev + 1);
-    }
-  };
-
-  const handleReset = () => {
-    setCurrentIndex(0);
+    if (currentIndex >= outfits.length) return;
+    const currentOutfit = outfits[currentIndex];
+    useAppStore.getState().recordSwipe(currentOutfit.id, type).catch(() => {});
+    setCurrentIndex((prev) => prev + 1);
   };
 
   const hasCards = currentIndex < outfits.length;
-  const currentOutfit = hasCards ? outfits[currentIndex] : null;
-
-  if (loading) {
-    return (
-      <View style={[styles.container, styles.center, { backgroundColor: theme.background }]}>
-        <ActivityIndicator size="large" color={theme.tint} />
-        <Text style={[styles.loadingText, { color: theme.tabIconDefault, marginTop: 12 }]}>
-          Loading catalog outfits...
-        </Text>
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={[styles.container, styles.center, { backgroundColor: theme.background }]}>
-        <X size={48} color="#EF4444" style={{ marginBottom: 16 }} />
-        <Text style={[styles.errorTitle, { color: theme.text }]}>Oops!</Text>
-        <Text style={[styles.errorText, { color: theme.tabIconDefault }]}>{error}</Text>
-        <TouchableOpacity 
-          onPress={() => fetchCatalog(activeOccasion)}
-          style={[styles.retryButton, { backgroundColor: theme.tint, marginTop: 16 }]}
-        >
-          <Text style={styles.retryText}>Retry</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  const current: any = hasCards ? outfits[currentIndex] : null;
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Mini Stats Bar */}
-      <View style={styles.topBar}>
-        <Text style={[styles.title, { color: theme.text }]}>Discover Looks</Text>
-        <View style={styles.countsContainer}>
-          <View style={[styles.countBadge, { backgroundColor: '#FEE2E2' }]}>
-            <X size={12} color="#EF4444" strokeWidth={3} />
-            <Text style={[styles.countText, { color: '#EF4444' }]}>{dislikesCount}</Text>
-          </View>
-          <View style={[styles.countBadge, { backgroundColor: '#ECFDF5', marginLeft: 8 }]}>
-            <Heart size={12} color="#10B981" strokeWidth={3} fill="#10B981" />
-            <Text style={[styles.countText, { color: '#10B981' }]}>{likesCount}</Text>
-          </View>
-        </View>
-      </View>
-      
-      {/* Occasion Chips Filter */}
-      <View style={styles.occasionsWrapper}>
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
-          style={styles.occasionsContainer}
-          contentContainerStyle={styles.occasionsContent}
-        >
-          {OCCASIONS.map((occ) => {
-            const isActive = activeOccasion === occ;
+    <View style={styles.screen}>
+      <LinearGradient colors={[...Crimson.glow]} locations={[0, 0.6, 1]} style={styles.glow} />
+
+      <Text style={[styles.title, { paddingTop: insets.top + 12 }]}>Looks you may like</Text>
+
+      {/* occasion filter chips */}
+      <View style={{ height: 40, marginTop: 12 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
+          {OCCASION_FILTERS.map((occ) => {
+            const active = activeOccasion === occ;
             return (
               <TouchableOpacity
                 key={occ}
                 onPress={() => setActiveOccasion(occ)}
-                style={[
-                  styles.chip,
-                  isActive 
-                    ? { backgroundColor: theme.tint, borderColor: theme.tint }
-                    : { backgroundColor: theme.card, borderColor: theme.border }
-                ]}
-                activeOpacity={0.7}
+                style={[styles.filterChip, active && styles.filterChipActive]}
               >
-                <Text 
-                  style={[
-                    styles.chipText,
-                    isActive 
-                      ? { color: '#FFFFFF', fontWeight: '700' }
-                      : { color: theme.tabIconDefault, fontWeight: '500' }
-                  ]}
-                >
-                  {occ}
-                </Text>
+                <Text style={[styles.filterChipText, active && { color: '#fff' }]}>{occ}</Text>
               </TouchableOpacity>
             );
           })}
         </ScrollView>
       </View>
 
-      {/* Card area */}
-      <View style={styles.cardContainer}>
-        {hasCards && currentOutfit ? (
-          <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <Image source={{ uri: currentOutfit.imageUrl }} style={styles.cardImage} />
-            
-            {currentOutfit.matchScore !== undefined && (
-              <View style={[styles.matchBadge, { backgroundColor: 'rgba(15, 23, 42, 0.85)' }]}>
-                <Sparkles size={12} color="#FBBF24" style={{ marginRight: 4 }} />
-                <Text style={styles.matchBadgeText}>
-                  {Math.round((currentOutfit.matchScore / 9) * 100)}% Match
-                </Text>
-              </View>
-            )}
-            
-            {/* Info overlay */}
-            <View style={styles.overlayContent}>
-              <View style={styles.tagRow}>
-                <View style={[styles.styleTag, { backgroundColor: theme.tint }]}>
-                  <Text style={styles.tagText}>{currentOutfit.style}</Text>
-                </View>
-                {currentOutfit.occasions.slice(0, 2).map((occ, idx) => (
-                  <View key={idx} style={[styles.occTag, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
-                    <Text style={styles.occText}>{occ}</Text>
-                  </View>
-                ))}
-              </View>
-              
-              <Text style={styles.cardTitle}>{currentOutfit.title}</Text>
-              
-              {/* Extra details row */}
-              <View style={styles.detailsRow}>
-                <Text style={styles.detailsText}>
-                  {currentOutfit.formality} • {currentOutfit.coverage} • {currentOutfit.season}
-                </Text>
-                <Text style={styles.paletteText}>
-                  Palette: {currentOutfit.colorPalette.join(', ')}
-                </Text>
-              </View>
-
-              {currentOutfit.description && (
-                <Text style={styles.descriptionText}>
-                  {currentOutfit.description}
-                </Text>
-              )}
-
-              {currentOutfit.explanation && (
-                <View style={styles.explanationBox}>
-                  <Sparkles size={16} color={theme.accent} style={{ marginRight: 6, marginTop: 2 }} />
-                  <Text style={styles.explanationText} numberOfLines={3}>
-                    {currentOutfit.explanation}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-        ) : (
-          <View style={[styles.emptyCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <Sparkles size={48} color={theme.tint} style={{ marginBottom: 16 }} />
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>All Caught Up!</Text>
-            <Text style={[styles.emptySubtitle, { color: theme.tabIconDefault }]}>
-              We've refined your style taste. Come back later for new curated collections.
-            </Text>
-            
-            <TouchableOpacity 
-              onPress={handleReset}
-              style={[styles.resetButton, { backgroundColor: theme.tint }]}
-            >
-              <RefreshCw size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
-              <Text style={styles.resetText}>Swipe Again</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-
-      {/* Action Buttons */}
-      {hasCards && (
-        <View style={styles.actionButtons}>
-          <TouchableOpacity 
-            onPress={() => handleAction('dislike')}
-            style={[styles.actionBtn, styles.dislikeBtn, { borderColor: theme.border, backgroundColor: theme.card }]}
-            activeOpacity={0.8}
-          >
-            <X size={28} color="#EF4444" strokeWidth={2.5} />
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.actionBtn, styles.infoBtn, { borderColor: theme.border, backgroundColor: theme.card }]}
-            activeOpacity={0.8}
-          >
-            <Info size={22} color={theme.tabIconDefault} />
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            onPress={() => handleAction('like')}
-            style={[styles.actionBtn, styles.likeBtn, { borderColor: theme.border, backgroundColor: theme.card }]}
-            activeOpacity={0.8}
-          >
-            <Heart size={28} color="#10B981" strokeWidth={2.5} fill="#10B981" />
+      {loading ? (
+        <View style={styles.centerBox}>
+          <ActivityIndicator size="large" color={Crimson.tabActive} />
+          <Text style={styles.mutedText}>Curating looks…</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.centerBox}>
+          <Text style={styles.mutedText}>{error}</Text>
+          <TouchableOpacity style={styles.resetBtn} onPress={() => fetchCatalog(activeOccasion)}>
+            <Text style={styles.resetBtnText}>Retry</Text>
           </TouchableOpacity>
         </View>
+      ) : !hasCards ? (
+        <View style={styles.centerBox}>
+          <Heart size={36} color={Crimson.rose} />
+          <Text style={styles.doneTitle}>You've seen every look</Text>
+          <Text style={styles.mutedText}>
+            {outfits.length === 0 ? 'No catalog looks for this occasion yet.' : 'Change the occasion, or run the deck again.'}
+          </Text>
+          {outfits.length > 0 && (
+            <TouchableOpacity style={styles.resetBtn} onPress={() => setCurrentIndex(0)}>
+              <RotateCw size={14} color="#fff" />
+              <Text style={styles.resetBtnText}>Run it back</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      ) : (
+        <>
+          {/* card stack */}
+          <View style={styles.stackArea}>
+            <View style={[styles.ghostCard, styles.ghostBack]} />
+            <View style={[styles.ghostCard, styles.ghostFront]} />
+            <View style={styles.topCard}>
+              <Image source={{ uri: current.imageUrl }} style={styles.topCardImage} />
+              {/* vertical action bar */}
+              <View style={styles.actionBar}>
+                <TouchableOpacity style={styles.actionBtn} onPress={() => handleAction('like')}>
+                  <Heart size={19} color="#fff" fill="#fff" />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.actionBtn} onPress={() => handleAction('dislike')}>
+                  <X size={20} color="#fff" />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.actionBtn} onPress={() => handleAction('like')}>
+                  <Bookmark size={18} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          {/* floating details card — translucent crimson gradient (design:
+              linear-gradient(150deg,rgba(20,10,12,.94),rgba(60,9,18,.94))),
+              sits near the bottom, overlapping the card by only ~10% */}
+          <LinearGradient
+            colors={['rgba(20,10,12,0.9)', 'rgba(60,9,18,0.9)']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={styles.detailsCard}
+          >
+            <View style={styles.detailChipsRow}>
+              <View style={[styles.detailChip, { backgroundColor: Crimson.crimson }]}>
+                <Text style={styles.detailChipTextBold}>{current.style}</Text>
+              </View>
+              {(current.occasions || []).slice(0, 2).map((occ: string) => (
+                <View key={occ} style={styles.detailChip}>
+                  <Text style={styles.detailChipText} numberOfLines={1}>{occ}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={styles.detailsTitle} numberOfLines={2}>{current.title}</Text>
+            <Text style={styles.detailsMeta} numberOfLines={1}>
+              {[current.formality, current.coverage, current.season, (current.colorPalette || []).slice(0, 2).join(', ')]
+                .filter(Boolean).join(' · ')}
+            </Text>
+          </LinearGradient>
+        </>
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 16,
+  screen: { flex: 1, backgroundColor: Crimson.darkBg },
+  glow: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '66%' },
+  title: { color: '#fff', fontFamily: Fonts.display, fontSize: 20, paddingHorizontal: 22 },
+  chipScroll: { paddingLeft: 22, paddingRight: 30, gap: 8, alignItems: 'center' },
+  filterChip: {
+    backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)',
+    borderRadius: 999, paddingHorizontal: 13, paddingVertical: 8,
   },
-  topBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginVertical: 16,
-    backgroundColor: 'transparent',
+  filterChipActive: { backgroundColor: Crimson.crimson, borderColor: Crimson.crimson },
+  filterChipText: { color: 'rgba(255,255,255,0.75)', fontFamily: Fonts.body, fontSize: 11 },
+
+  centerBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 40, paddingBottom: 60 },
+  mutedText: { color: Crimson.white55, fontFamily: Fonts.bodyMed, fontSize: 12.5, textAlign: 'center' },
+  doneTitle: { color: '#fff', fontFamily: Fonts.display, fontSize: 18 },
+  resetBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 7,
+    backgroundColor: 'rgba(255,255,255,0.16)', borderRadius: 12, paddingHorizontal: 18, paddingVertical: 11,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
+  resetBtnText: { color: '#fff', fontFamily: Fonts.bodyBold, fontSize: 13 },
+
+  // why marginBottom: the card must NOT fill the screen — it ends well above
+  // the nav so the details bar floats mostly below it, overlapping by ~10%
+  // (matches the design's 384px centred card + bottom-floating details).
+  stackArea: { flex: 1, marginHorizontal: 16, marginTop: 16, marginBottom: 92 },
+  ghostCard: {
+    position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+    borderRadius: 26, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
   },
-  countsContainer: {
-    flexDirection: 'row',
-    backgroundColor: 'transparent',
+  ghostBack: { backgroundColor: 'rgba(168,50,74,0.22)', transform: [{ rotate: '-5deg' }], left: 26, right: 10, top: -8 },
+  ghostFront: { backgroundColor: 'rgba(168,50,74,0.4)', transform: [{ rotate: '4deg' }], left: 4, right: 20, top: -2 },
+  topCard: {
+    position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+    borderRadius: 26, overflow: 'hidden', backgroundColor: '#3c0912',
+    shadowColor: '#780a1e', shadowOpacity: 0.4, shadowRadius: 22, shadowOffset: { width: 0, height: 16 }, elevation: 12,
   },
-  countBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  countText: {
-    fontSize: 12,
-    fontWeight: '700',
-    marginLeft: 4,
-  },
-  cardContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-  },
-  card: {
-    width: CARD_WIDTH,
-    height: CARD_HEIGHT,
-    borderRadius: 24,
-    borderWidth: 1,
-    overflow: 'hidden',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-  },
-  cardImage: {
-    width: '100%',
-    height: '100%',
-    position: 'absolute',
-    resizeMode: 'cover',
-  },
-  overlayContent: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 20,
-    backgroundColor: 'rgba(15, 23, 42, 0.75)', // Slightly higher opacity for extra readability of multi-line texts
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-  },
-  tagRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 10,
-    backgroundColor: 'transparent',
-  },
-  styleTag: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  tagText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  occTag: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  occText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#E2E8F0',
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 6,
-  },
-  detailsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    marginBottom: 8,
-    backgroundColor: 'transparent',
-  },
-  detailsText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#CBD5E1',
-  },
-  paletteText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#94A3B8',
-  },
-  explanationBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    borderRadius: 12,
-    padding: 10,
-    marginTop: 4,
-  },
-  explanationText: {
-    flex: 1,
-    fontSize: 12,
-    color: '#F1F5F9',
-    lineHeight: 16,
-  },
-  descriptionText: {
-    fontSize: 13,
-    lineHeight: 18,
-    color: '#E2E8F0',
-    marginBottom: 6,
-  },
-  emptyCard: {
-    width: CARD_WIDTH,
-    height: CARD_HEIGHT,
-    borderRadius: 24,
-    borderWidth: 1,
-    padding: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 24,
-  },
-  resetButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 16,
-  },
-  resetText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 24,
-    marginVertical: 24,
-    backgroundColor: 'transparent',
+  topCardImage: { width: '100%', height: '100%', resizeMode: 'cover' },
+  // why the darker pill + per-button borders: the design's white-frosted bar
+  // reads because it sits over a dark card; over a real (often light) garment
+  // photo it washes out, so the pill gets a dark frosted backing and each
+  // button a hairline border + shadow so the icons stay legible on any image.
+  actionBar: {
+    position: 'absolute', right: 12, top: '50%', transform: [{ translateY: -80 }],
+    padding: 5, borderRadius: 999, gap: 8,
+    backgroundColor: 'rgba(20,8,10,0.42)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)',
   },
   actionBtn: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 1.5,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
+    width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(255,255,255,0.3)',
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 5,
   },
-  dislikeBtn: {
-    transform: [{ scale: 1.0 }],
+
+  detailsCard: {
+    position: 'absolute', left: 16, right: 16, bottom: 14, zIndex: 6,
+    padding: 15, borderRadius: 22,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    shadowColor: '#780a1e', shadowOpacity: 0.55, shadowRadius: 22, shadowOffset: { width: 0, height: 14 }, elevation: 14,
   },
-  likeBtn: {
-    transform: [{ scale: 1.0 }],
-  },
-  infoBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-  },
-  center: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  errorTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  errorText: {
-    fontSize: 14,
-    textAlign: 'center',
-    paddingHorizontal: 32,
-    marginBottom: 16,
-  },
-  retryButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  retryText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  occasionsWrapper: {
-    marginBottom: 12,
-    backgroundColor: 'transparent',
-  },
-  occasionsContainer: {
-    maxHeight: 44,
-    backgroundColor: 'transparent',
-  },
-  occasionsContent: {
-    paddingHorizontal: 4,
-    gap: 8,
-    alignItems: 'center',
-  },
-  chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  chipText: {
-    fontSize: 13,
-  },
-  matchBadge: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-    zIndex: 10,
-  },
-  matchBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
-  },
+  detailChipsRow: { flexDirection: 'row', gap: 6, marginBottom: 8, flexWrap: 'wrap' },
+  detailChip: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 8, maxWidth: 130 },
+  detailChipText: { color: '#fff', fontFamily: Fonts.bodyMed, fontSize: 9.5 },
+  detailChipTextBold: { color: '#fff', fontFamily: Fonts.bodyBold, fontSize: 9.5 },
+  detailsTitle: { color: '#fff', fontFamily: Fonts.display, fontSize: 18, lineHeight: 20 },
+  detailsMeta: { color: 'rgba(255,255,255,0.6)', fontFamily: Fonts.bodyMed, fontSize: 10, marginTop: 6 },
 });

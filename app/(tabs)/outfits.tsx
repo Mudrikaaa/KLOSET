@@ -1,95 +1,87 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { StyleSheet, ScrollView, TouchableOpacity, Image, TextInput, Modal, ActivityIndicator, View as RNView } from 'react-native';
-import { Text, View } from '@/components/Themed';
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
-import { Sparkles, Stars, Briefcase, GraduationCap, Heart, Gift, Check, Search, ChevronDown, X, Compass } from 'lucide-react-native';
+import {
+  StyleSheet, ScrollView, TouchableOpacity, Image, TextInput, Modal,
+  ActivityIndicator, View, Text,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Search, X, Check, ChevronLeft, ChevronRight, RotateCw, Sparkles } from 'lucide-react-native';
+import { Crimson, Fonts } from '@/constants/Colors';
 import { api } from '../../lib';
 import type { WardrobeOutfit, SuggestionSpecs } from '../../lib/api';
 import { useAppStore } from '../../store';
 import { Outfit, CoveragePreference, StylePreference } from '../../types';
 
+// ============================================================================
+// Occasion Stylist — Crimson redesign (Phone B): full-crimson room, one look
+// at a time from YOUR closet, with "ideas from outside" as an opt-in lane.
+// ============================================================================
+
 const OCCASIONS = [
-  // Festive & Family
-  { id: 'Diwali Party (Family)', name: 'Diwali (Family)', category: 'Festive & Family', icon: Sparkles, color: '#F59E0B' },
-  { id: 'Diwali Party (Friends)', name: 'Diwali (Friends)', category: 'Festive & Family', icon: Sparkles, color: '#F59E0B' },
-  { id: 'Holi', name: 'Holi', category: 'Festive & Family', icon: Sparkles, color: '#F59E0B' },
-  { id: 'Navratri / Garba', name: 'Navratri / Garba', category: 'Festive & Family', icon: Sparkles, color: '#F59E0B' },
-  { id: 'Eid', name: 'Eid', category: 'Festive & Family', icon: Sparkles, color: '#F59E0B' },
-  { id: 'Regional Festival', name: 'Regional Fest', category: 'Festive & Family', icon: Sparkles, color: '#F59E0B' },
-  { id: 'Pooja / Temple Visit', name: 'Pooja/Temple', category: 'Festive & Family', icon: Sparkles, color: '#F59E0B' },
-  { id: 'Baby Shower / Godh Bharai', name: 'Baby Shower', category: 'Festive & Family', icon: Sparkles, color: '#F59E0B' },
-
-  // Weddings & Functions
-  { id: 'Mehendi Function', name: 'Mehendi', category: 'Weddings & Functions', icon: Stars, color: '#EC4899' },
-  { id: 'Sangeet Night', name: 'Sangeet Night', category: 'Weddings & Functions', icon: Stars, color: '#EC4899' },
-  { id: 'Wedding (Close Family)', name: 'Wedding (Family)', category: 'Weddings & Functions', icon: Stars, color: '#EC4899' },
-  { id: 'Wedding (Guest)', name: 'Wedding (Guest)', category: 'Weddings & Functions', icon: Stars, color: '#EC4899' },
-  { id: 'Reception', name: 'Reception', category: 'Weddings & Functions', icon: Stars, color: '#EC4899' },
-  { id: 'Cocktail / Pre-wedding', name: 'Cocktail Night', category: 'Weddings & Functions', icon: Stars, color: '#EC4899' },
-  { id: 'Engagement Ceremony', name: 'Engagement', category: 'Weddings & Functions', icon: Stars, color: '#EC4899' },
-  { id: 'Roka / Sagai', name: 'Roka/Sagai', category: 'Weddings & Functions', icon: Stars, color: '#EC4899' },
-
-  // College
-  { id: 'First Day of College', name: 'First Day College', category: 'College', icon: GraduationCap, color: '#10B981' },
-  { id: 'College Farewell', name: 'Farewell', category: 'College', icon: GraduationCap, color: '#10B981' },
-  { id: 'College Fest (Day)', name: 'Fest (Day)', category: 'College', icon: GraduationCap, color: '#10B981' },
-  { id: 'College Fest (Night)', name: 'Fest (Night)', category: 'College', icon: GraduationCap, color: '#10B981' },
-  { id: 'College Trip', name: 'College Trip', category: 'College', icon: GraduationCap, color: '#10B981' },
-  { id: 'Internship (Startup)', name: 'Intern (Startup)', category: 'College', icon: GraduationCap, color: '#10B981' },
-  { id: 'Internship (Corporate)', name: 'Intern (Corp)', category: 'College', icon: GraduationCap, color: '#10B981' },
-
-  // Professional
-  { id: 'Job Interview (Tech)', name: 'Interview (Tech)', category: 'Professional', icon: Briefcase, color: '#6366F1' },
-  { id: 'Job Interview (Corporate)', name: 'Interview (Corp)', category: 'Professional', icon: Briefcase, color: '#6366F1' },
-  { id: 'Office (Startup)', name: 'Office (Startup)', category: 'Professional', icon: Briefcase, color: '#6366F1' },
-  { id: 'Office (Formal)', name: 'Office (Formal)', category: 'Professional', icon: Briefcase, color: '#6366F1' },
-  { id: 'Client Meeting', name: 'Client Meeting', category: 'Professional', icon: Briefcase, color: '#6366F1' },
-  { id: 'WFH / Video Call', name: 'WFH Call', category: 'Professional', icon: Briefcase, color: '#6366F1' },
-
-  // Social
-  { id: 'Casual Outing', name: 'Casual Outing', category: 'Social', icon: Heart, color: '#3B82F6' },
-  { id: 'Mall / Shopping Day', name: 'Shopping Day', category: 'Social', icon: Heart, color: '#3B82F6' },
-  { id: 'Brunch / Cafe', name: 'Brunch / Cafe', category: 'Social', icon: Heart, color: '#3B82F6' },
-  { id: 'Dinner Date', name: 'Dinner Date', category: 'Social', icon: Heart, color: '#3B82F6' },
-  { id: 'First Date', name: 'First Date', category: 'Social', icon: Heart, color: '#3B82F6' },
-  { id: 'Night Out', name: 'Night Out', category: 'Social', icon: Heart, color: '#3B82F6' },
-  { id: 'House Party', name: 'House Party', category: 'Social', icon: Heart, color: '#3B82F6' },
-  { id: 'Gym / Workout', name: 'Gym/Workout', category: 'Social', icon: Heart, color: '#3B82F6' },
-  { id: 'Beach / Pool Day', name: 'Beach Day', category: 'Social', icon: Heart, color: '#3B82F6' },
-
-  // Special
-  { id: 'My Birthday', name: 'My Birthday', category: 'Special', icon: Gift, color: '#8B5CF6' },
-  { id: "Friend's Birthday", name: "Friend's Bday", category: 'Special', icon: Gift, color: '#8B5CF6' },
-  { id: 'Travel Day', name: 'Travel Day', category: 'Special', icon: Gift, color: '#8B5CF6' },
-  { id: 'Airport / Travel Look', name: 'Airport Look', category: 'Special', icon: Gift, color: '#8B5CF6' },
-  { id: 'Hill Station Trip', name: 'Hill Station', category: 'Special', icon: Gift, color: '#8B5CF6' },
-  { id: 'Heritage City Sightseeing', name: 'Sightseeing', category: 'Special', icon: Gift, color: '#8B5CF6' },
-  { id: 'Graduation Day', name: 'Graduation', category: 'Special', icon: Gift, color: '#8B5CF6' },
-  { id: 'Award Ceremony / Convocation', name: 'Convocation', category: 'Special', icon: Gift, color: '#8B5CF6' },
-  { id: 'Anniversary Dinner', name: 'Anniversary', category: 'Special', icon: Gift, color: '#8B5CF6' },
+  { id: 'Diwali Party (Family)', category: 'Festive & Family' },
+  { id: 'Diwali Party (Friends)', category: 'Festive & Family' },
+  { id: 'Holi', category: 'Festive & Family' },
+  { id: 'Navratri / Garba', category: 'Festive & Family' },
+  { id: 'Eid', category: 'Festive & Family' },
+  { id: 'Regional Festival', category: 'Festive & Family' },
+  { id: 'Pooja / Temple Visit', category: 'Festive & Family' },
+  { id: 'Baby Shower / Godh Bharai', category: 'Festive & Family' },
+  { id: 'Mehendi Function', category: 'Weddings & Functions' },
+  { id: 'Sangeet Night', category: 'Weddings & Functions' },
+  { id: 'Wedding (Close Family)', category: 'Weddings & Functions' },
+  { id: 'Wedding (Guest)', category: 'Weddings & Functions' },
+  { id: 'Reception', category: 'Weddings & Functions' },
+  { id: 'Cocktail / Pre-wedding', category: 'Weddings & Functions' },
+  { id: 'Engagement Ceremony', category: 'Weddings & Functions' },
+  { id: 'Roka / Sagai', category: 'Weddings & Functions' },
+  { id: 'First Day of College', category: 'College' },
+  { id: 'College Farewell', category: 'College' },
+  { id: 'College Fest (Day)', category: 'College' },
+  { id: 'College Fest (Night)', category: 'College' },
+  { id: 'College Trip', category: 'College' },
+  { id: 'Internship (Startup)', category: 'College' },
+  { id: 'Internship (Corporate)', category: 'College' },
+  { id: 'Job Interview (Tech)', category: 'Professional' },
+  { id: 'Job Interview (Corporate)', category: 'Professional' },
+  { id: 'Office (Startup)', category: 'Professional' },
+  { id: 'Office (Formal)', category: 'Professional' },
+  { id: 'Client Meeting', category: 'Professional' },
+  { id: 'WFH / Video Call', category: 'Professional' },
+  { id: 'Casual Outing', category: 'Social' },
+  { id: 'Mall / Shopping Day', category: 'Social' },
+  { id: 'Brunch / Cafe', category: 'Social' },
+  { id: 'Dinner Date', category: 'Social' },
+  { id: 'First Date', category: 'Social' },
+  { id: 'Night Out', category: 'Social' },
+  { id: 'House Party', category: 'Social' },
+  { id: 'Gym / Workout', category: 'Social' },
+  { id: 'Beach / Pool Day', category: 'Social' },
+  { id: 'My Birthday', category: 'Special' },
+  { id: "Friend's Birthday", category: 'Special' },
+  { id: 'Travel Day', category: 'Special' },
+  { id: 'Airport / Travel Look', category: 'Special' },
+  { id: 'Hill Station Trip', category: 'Special' },
+  { id: 'Heritage City Sightseeing', category: 'Special' },
+  { id: 'Graduation Day', category: 'Special' },
+  { id: 'Award Ceremony / Convocation', category: 'Special' },
+  { id: 'Anniversary Dinner', category: 'Special' },
 ];
-
 const CATEGORY_ORDER = ['Festive & Family', 'Weddings & Functions', 'College', 'Professional', 'Social', 'Special'];
 const COVERAGE_OPTIONS: (CoveragePreference | 'Any')[] = ['Any', 'Modest', 'Moderate', 'Open'];
 const STYLE_OPTIONS: (StylePreference | 'Any')[] = ['Any', 'Ethnic', 'Fusion', 'Western', 'Minimal', 'Streetwear'];
 
 export default function OutfitsScreen() {
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme];
-
-  // Occasion is CHOSEN, not scrolled to: null until the user picks one.
+  const insets = useSafeAreaInsets();
   const [selectedOccasion, setSelectedOccasion] = useState<string | null>(null);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [search, setSearch] = useState('');
 
-  // Closet-first results
   const [closetOutfits, setClosetOutfits] = useState<WardrobeOutfit[]>([]);
+  const [lookIndex, setLookIndex] = useState(0);
   const [wardrobeSize, setWardrobeSize] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // "Ideas from outside" (catalog) — opt-in, with an optional specs sheet
   const [showIdeas, setShowIdeas] = useState(false);
   const [specsVisible, setSpecsVisible] = useState(false);
   const [specCoverage, setSpecCoverage] = useState<CoveragePreference | 'Any'>('Any');
@@ -97,15 +89,14 @@ export default function OutfitsScreen() {
   const [ideas, setIdeas] = useState<Outfit[]>([]);
   const [ideasLoading, setIdeasLoading] = useState(false);
 
-  // why: per the hydration rule, API effects must wait for hasHydrated so the
-  // JWT is restored before the first call on a cold start.
+  // per the hydration rule: wait for the restored JWT before the first call
   const hasHydrated = useAppStore((state) => state.hasHydrated);
   const isAuthenticated = useAppStore((state) => state.isAuthenticated);
 
   const filteredOccasions = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return OCCASIONS;
-    return OCCASIONS.filter((o) => o.id.toLowerCase().includes(q) || o.name.toLowerCase().includes(q) || o.category.toLowerCase().includes(q));
+    return OCCASIONS.filter((o) => o.id.toLowerCase().includes(q) || o.category.toLowerCase().includes(q));
   }, [search]);
 
   const fetchCloset = (occasion: string) => {
@@ -115,10 +106,10 @@ export default function OutfitsScreen() {
       .then((data) => {
         setClosetOutfits(data.outfits);
         setWardrobeSize(data.wardrobeSize);
+        setLookIndex(0);
         setLoading(false);
       })
       .catch((err) => {
-        console.error('[KLOSET-DEBUG] [OutfitsScreen] Wardrobe suggestions failed:', err);
         setError(err.message || 'Failed to style your closet.');
         setLoading(false);
       });
@@ -131,7 +122,7 @@ export default function OutfitsScreen() {
     setIdeasLoading(true);
     api.getSuggestions(occasion, specs)
       .then((data) => setIdeas(data || []))
-      .catch((err) => console.error('[KLOSET-DEBUG] [OutfitsScreen] Ideas failed:', err))
+      .catch(() => {})
       .finally(() => setIdeasLoading(false));
   };
 
@@ -149,611 +140,440 @@ export default function OutfitsScreen() {
     setSelectedOccasion(id);
   };
 
-  const selectedMeta = OCCASIONS.find((o) => o.id === selectedOccasion);
+  const look = closetOutfits[lookIndex];
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <Text style={[styles.heading, { color: theme.text }]}>Occasion Stylist</Text>
-      <Text style={[styles.subheading, { color: theme.tabIconDefault }]}>
-        Tell me the occasion — I'll style it from your closet first.
-      </Text>
+    <View style={styles.screen}>
+      <LinearGradient
+        colors={[...Crimson.occasionBg]}
+        locations={[0, 0.3, 0.78]}
+        start={{ x: 0.15, y: 0 }} end={{ x: 0.7, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
 
-      {/* Occasion selector — opens a searchable picker */}
-      <TouchableOpacity
-        onPress={() => setPickerVisible(true)}
-        style={[styles.selectorBtn, { backgroundColor: theme.card, borderColor: selectedOccasion ? theme.tint : theme.border }]}
-        activeOpacity={0.8}
-      >
-        {selectedMeta ? (
-          <RNView style={styles.selectorInner}>
-            <RNView style={[styles.iconCircle, { backgroundColor: `${selectedMeta.color}15` }]}>
-              <selectedMeta.icon size={18} color={selectedMeta.color} />
-            </RNView>
-            <Text style={[styles.selectorText, { color: theme.text }]}>{selectedMeta.id}</Text>
-          </RNView>
-        ) : (
-          <RNView style={styles.selectorInner}>
-            <Search size={18} color={theme.tabIconDefault} />
-            <Text style={[styles.selectorText, { color: theme.tabIconDefault }]}>What's the occasion?</Text>
-          </RNView>
-        )}
-        <ChevronDown size={20} color={theme.tabIconDefault} />
-      </TouchableOpacity>
+      {/* header */}
+      <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
+        <Text style={styles.kicker}>OCCASION STYLIST</Text>
+        <Text style={styles.title}>Style a look</Text>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.matchesScroll}>
-        {!selectedOccasion ? (
-          <View style={[styles.emptyContainer, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <Sparkles size={40} color={theme.tabIconDefault} style={{ marginBottom: 12 }} />
-            <Text style={[styles.emptyText, { color: theme.text }]}>Pick an occasion to begin</Text>
-            <Text style={[styles.emptySubtext, { color: theme.tabIconDefault }]}>
-              Wedding, brunch, interview, garba night — I'll build looks from what you already own.
-            </Text>
-          </View>
-        ) : loading ? (
-          <RNView style={styles.centerContainer}>
-            <ActivityIndicator size="large" color={theme.tint} />
-            <Text style={[styles.loadingText, { color: theme.tabIconDefault, marginTop: 12 }]}>
-              Styling your closet...
-            </Text>
-          </RNView>
-        ) : error ? (
-          <RNView style={styles.centerContainer}>
-            <Text style={{ color: '#EF4444', textAlign: 'center', marginBottom: 12 }}>{error}</Text>
-            <TouchableOpacity onPress={() => fetchCloset(selectedOccasion)} style={[styles.retryBtn, { backgroundColor: theme.tint }]}>
-              <Text style={styles.retryBtnText}>Retry</Text>
+        {/* occasion "search" bar */}
+        <TouchableOpacity style={styles.searchBar} activeOpacity={0.85} onPress={() => setPickerVisible(true)}>
+          <Search size={15} color="rgba(255,255,255,0.8)" />
+          <Text style={[styles.searchText, !selectedOccasion && { color: Crimson.white55 }]}>
+            {selectedOccasion || "What's the occasion?"}
+          </Text>
+          {selectedOccasion && (
+            <TouchableOpacity
+              style={styles.clearDot}
+              onPress={() => { setSelectedOccasion(null); setClosetOutfits([]); setIdeas([]); setShowIdeas(false); }}
+            >
+              <X size={11} color="#fff" />
             </TouchableOpacity>
-          </RNView>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+        {!selectedOccasion ? (
+          <View style={styles.emptyBox}>
+            <Sparkles size={34} color="rgba(255,255,255,0.7)" />
+            <Text style={styles.emptyTitle}>Pick an occasion to begin</Text>
+            <Text style={styles.emptySub}>Sangeet, brunch, interview, garba night — I'll style it from your closet first.</Text>
+          </View>
         ) : (
           <>
-            {/* ---------- SECTION 1: From your Kloset (priority) ---------- */}
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>From Your Kloset</Text>
-
-            {closetOutfits.length > 0 ? (
-              closetOutfits.map((outfit) => (
-                <View key={outfit.id} style={[styles.matchCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                  <View style={styles.matchHeader}>
-                    <Text style={[styles.matchTitle, { color: theme.text }]}>
-                      {outfit.items.map((i) => i.subType || i.category).join(' + ')}
+            {/* outside ideas chip + preferences */}
+            <View style={{ marginBottom: 16 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+                <TouchableOpacity style={styles.outsideChip} onPress={() => setSpecsVisible(true)}>
+                  <Text style={{ color: Crimson.rose, fontSize: 12 }}>✦</Text>
+                  <Text style={styles.outsideChipText}>Outfit from outside your closet ›</Text>
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity style={styles.prefsRow} onPress={() => setSpecsVisible(true)}>
+                  <Text style={styles.prefsText}>
+                    Preferences
+                    <Text style={{ color: Crimson.white55 }}>
+                      {'  ·  '}{specCoverage === 'Any' && specStyle === 'Any' ? 'None set' : [specCoverage !== 'Any' ? specCoverage : null, specStyle !== 'Any' ? specStyle : null].filter(Boolean).join(' · ')}
                     </Text>
-                    <View style={[styles.matchBadge, { backgroundColor: `${theme.accent}15` }]}>
-                      <Text style={[styles.matchBadgeText, { color: theme.accent }]}>{outfit.lane}</Text>
-                    </View>
-                  </View>
+                  </Text>
+                  <Text style={{ color: Crimson.white70, fontSize: 11 }}>▾</Text>
+                </TouchableOpacity>
+            </View>
 
-                  {/* Item thumbnails */}
-                  <RNView style={styles.itemsPreviewRow}>
-                    {outfit.items.map((item) => (
-                      <RNView key={item.id} style={[styles.itemPreviewCard, { borderColor: theme.border }]}>
-                        <Image source={{ uri: item.imageUrl }} style={styles.itemPreviewImg} />
-                        <Text style={[styles.itemPreviewName, { color: theme.text }]} numberOfLines={1}>
-                          {item.subType || item.category}
-                        </Text>
-                      </RNView>
-                    ))}
-                  </RNView>
-
-                  {/* The WHY — 4-5 short lines */}
-                  <View style={[styles.explanationBox, { backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)' }]}>
-                    <Sparkles size={16} color={theme.accent} style={{ marginRight: 8, marginTop: 2 }} />
-                    <Text style={[styles.explanationText, { color: theme.text }]}>
-                      {outfit.explanation}
-                    </Text>
-                  </View>
-
-                  <TouchableOpacity style={[styles.wearBtn, { backgroundColor: theme.tint }]}>
-                    <Text style={styles.wearBtnText}>Plan to Wear</Text>
-                  </TouchableOpacity>
-                </View>
-              ))
-            ) : (
-              <View style={[styles.emptyContainer, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                <Sparkles size={32} color={theme.tabIconDefault} style={{ marginBottom: 10 }} />
-                <Text style={[styles.emptyText, { color: theme.text }]}>
+            {loading ? (
+              <View style={styles.centerBox}>
+                <ActivityIndicator size="large" color="#fff" />
+                <Text style={styles.loadingText}>Styling your closet…</Text>
+              </View>
+            ) : error ? (
+              <View style={styles.centerBox}>
+                <Text style={styles.errorText}>{error}</Text>
+                <TouchableOpacity style={styles.retryBtn} onPress={() => fetchCloset(selectedOccasion)}>
+                  <Text style={styles.retryText}>Retry</Text>
+                </TouchableOpacity>
+              </View>
+            ) : closetOutfits.length === 0 ? (
+              <View style={styles.emptyBox}>
+                <Sparkles size={30} color="rgba(255,255,255,0.7)" />
+                <Text style={styles.emptyTitle}>
                   {wardrobeSize === 0 ? 'Your Kloset is empty' : `Nothing in your closet fits ${selectedOccasion} yet`}
                 </Text>
-                <Text style={[styles.emptySubtext, { color: theme.tabIconDefault }]}>
+                <Text style={styles.emptySub}>
                   {wardrobeSize === 0
-                    ? 'Add a few garments and I\'ll start composing looks from them.'
-                    : 'Add more pieces for this occasion — or browse outside ideas below.'}
+                    ? 'Add a few garments and I\'ll start composing looks.'
+                    : 'Add more pieces — or browse outside ideas above.'}
                 </Text>
               </View>
-            )}
-
-            {/* ---------- SECTION 2: Ideas from outside (opt-in) ---------- */}
-            {!showIdeas ? (
-              <TouchableOpacity
-                onPress={() => { setSpecsVisible(true); }}
-                style={[styles.ideasBtn, { borderColor: theme.tint }]}
-                activeOpacity={0.8}
-              >
-                <Compass size={18} color={theme.tint} />
-                <Text style={[styles.ideasBtnText, { color: theme.tint }]}>Browse ideas from outside your closet</Text>
-              </TouchableOpacity>
-            ) : (
+            ) : look ? (
               <>
-                <RNView style={styles.ideasHeaderRow}>
-                  <Text style={[styles.sectionTitle, { color: theme.text, marginBottom: 0 }]}>Outside Ideas</Text>
-                  <TouchableOpacity onPress={() => setSpecsVisible(true)}>
-                    <Text style={{ color: theme.tint, fontWeight: '600', fontSize: 13 }}>
-                      {specCoverage === 'Any' && specStyle === 'Any' ? 'Add preferences' : `${specCoverage !== 'Any' ? specCoverage : ''}${specCoverage !== 'Any' && specStyle !== 'Any' ? ' · ' : ''}${specStyle !== 'Any' ? specStyle : ''}`}
-                    </Text>
+                {/* viewer header */}
+                <View style={styles.viewerHeader}>
+                  <View>
+                    <Text style={styles.viewerTitle}>Look {lookIndex + 1} of {closetOutfits.length}</Text>
+                    <Text style={styles.viewerSub}>From your closet · {selectedOccasion}</Text>
+                  </View>
+                  <TouchableOpacity style={styles.redoBtn} onPress={() => fetchCloset(selectedOccasion)}>
+                    <RotateCw size={13} color="#fff" />
+                    <Text style={styles.redoText}>Redo</Text>
                   </TouchableOpacity>
-                </RNView>
+                </View>
 
+                {/* match + prev/next */}
+                <View style={styles.matchRow}>
+                  <View style={styles.matchPill}>
+                    <Text style={styles.matchPillText}>✦ {Math.min(98, 55 + look.matchScore * 3)}% Match</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 9 }}>
+                    <TouchableOpacity
+                      style={[styles.navCircle, lookIndex === 0 && { opacity: 0.4 }]}
+                      disabled={lookIndex === 0}
+                      onPress={() => setLookIndex((i) => Math.max(0, i - 1))}
+                    >
+                      <ChevronLeft size={19} color="#fff" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.navCircle, lookIndex >= closetOutfits.length - 1 && { opacity: 0.4 }]}
+                      disabled={lookIndex >= closetOutfits.length - 1}
+                      onPress={() => setLookIndex((i) => Math.min(closetOutfits.length - 1, i + 1))}
+                    >
+                      <ChevronRight size={19} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* piece badges */}
+                <View style={styles.badgeRow}>
+                  {look.items.map((item, idx) => (
+                    <View key={item.id} style={[styles.pieceBadge, idx === 0 && styles.pieceBadgeActive]}>
+                      <Text style={styles.pieceBadgeText}>{String(idx + 1).padStart(2, '0')}</Text>
+                    </View>
+                  ))}
+                  <View style={[styles.pieceBadge, { backgroundColor: 'transparent' }]}>
+                    <Text style={[styles.pieceBadgeText, { color: Crimson.white55 }]}>{look.lane}</Text>
+                  </View>
+                </View>
+
+                {/* glass piece cards */}
+                {look.items.map((item, idx) => (
+                  <View key={item.id} style={[styles.pieceCard, idx === 0 && styles.pieceCardHero]}>
+                    <Image source={{ uri: item.cutoutUrl || item.imageUrl }} style={idx === 0 ? styles.pieceImgHero : styles.pieceImg} />
+                    <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+                      <Text style={styles.pieceMeta}>
+                        {[item.fabric, item.embellishment && item.embellishment !== 'None' ? item.embellishment : null]
+                          .filter(Boolean).join(' · ').toUpperCase() || item.category.toUpperCase()}
+                      </Text>
+                      <Text style={[styles.pieceName, idx === 0 && { fontSize: 19 }]} numberOfLines={2}>
+                        {(item.colors?.[0] ? item.colors[0] + '\n' : '') + (item.subType || item.category)}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+
+                {/* why it works */}
+                <View style={styles.whyBox}>
+                  <View style={styles.whyHeader}>
+                    <Text style={{ color: Crimson.rose, fontSize: 12 }}>✦</Text>
+                    <Text style={styles.whyLabel}>WHY IT WORKS</Text>
+                  </View>
+                  {/* why ~15 words: the composer writes a 4-5 line essay, but
+                      the design's card carries one short editorial thought;
+                      cap at 15 words with an ellipsis so it never clips mid-word */}
+                  <Text style={styles.whyText}>
+                    {(() => {
+                      const words = look.explanation.replace(/\n/g, ' ').split(/\s+/).filter(Boolean);
+                      return words.slice(0, 15).join(' ') + (words.length > 15 ? '…' : '');
+                    })()}
+                  </Text>
+                </View>
+
+                <TouchableOpacity activeOpacity={0.9}>
+                  <LinearGradient colors={[...Crimson.cta]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0.3 }} style={styles.cta}>
+                    <Text style={styles.ctaText}>Plan to Wear</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </>
+            ) : null}
+
+            {/* outside ideas */}
+            {showIdeas && (
+              <View style={{ marginTop: 26 }}>
+                <Text style={styles.ideasTitle}>Outside Ideas</Text>
                 {ideasLoading ? (
-                  <RNView style={styles.centerContainer}>
-                    <ActivityIndicator size="small" color={theme.tint} />
-                  </RNView>
-                ) : ideas.length > 0 ? (
-                  ideas.map((match: any) => (
-                    <View key={match.id} style={[styles.matchCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                      <View style={styles.matchHeader}>
-                        <Text style={[styles.matchTitle, { color: theme.text }]}>{match.title}</Text>
-                        <View style={[styles.matchBadge, { backgroundColor: `${theme.accent}15` }]}>
-                          <Text style={[styles.matchBadgeText, { color: theme.accent }]}>
-                            {match.matchScore !== undefined ? `${Math.round((match.matchScore / 10) * 100)}% Match` : 'Matched'}
-                          </Text>
+                  <ActivityIndicator color="#fff" style={{ paddingVertical: 24 }} />
+                ) : ideas.length === 0 ? (
+                  <Text style={styles.emptySub}>No outside ideas match those preferences for this occasion.</Text>
+                ) : (
+                  ideas.map((idea: any) => (
+                    <View key={idea.id} style={styles.ideaCard}>
+                      {idea.imageUrl && <Image source={{ uri: idea.imageUrl }} style={styles.ideaImg} />}
+                      <View style={styles.ideaChipsRow}>
+                        <View style={[styles.ideaChip, { backgroundColor: Crimson.crimson }]}>
+                          <Text style={styles.ideaChipText}>{idea.style}</Text>
+                        </View>
+                        <View style={styles.ideaChip}>
+                          <Text style={styles.ideaChipText}>{idea.formality}</Text>
+                        </View>
+                        <View style={styles.ideaChip}>
+                          <Text style={styles.ideaChipText}>{idea.coverage}</Text>
                         </View>
                       </View>
-
-                      {match.imageUrl && (
-                        <RNView style={[styles.matchImageContainer, { borderColor: theme.border }]}>
-                          <Image source={{ uri: match.imageUrl }} style={styles.matchImage} />
-                        </RNView>
-                      )}
-
-                      <Text style={[styles.matchDesc, { color: theme.tabIconDefault }]}>{match.description}</Text>
-
-                      <View style={styles.metaRow}>
-                        <Text style={[styles.metaText, { color: theme.tabIconDefault }]}>
-                          Formality: <Text style={{ color: theme.text, fontWeight: '600' }}>{match.formality}</Text>
-                        </Text>
-                        <Text style={[styles.metaText, { color: theme.tabIconDefault }]}>
-                          Coverage: <Text style={{ color: theme.text, fontWeight: '600' }}>{match.coverage}</Text>
-                        </Text>
-                      </View>
-
-                      {match.explanation && (
-                        <View style={[styles.explanationBox, { backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)', marginTop: 10 }]}>
-                          <Sparkles size={16} color={theme.accent} style={{ marginRight: 8, marginTop: 2 }} />
-                          <Text style={[styles.explanationText, { color: theme.text }]} numberOfLines={4}>
-                            {match.explanation}
-                          </Text>
-                        </View>
-                      )}
+                      <Text style={styles.ideaTitle}>{idea.title}</Text>
+                      <Text style={styles.ideaMeta}>
+                        {idea.season} · {(idea.colorPalette || []).slice(0, 3).join(', ')}
+                      </Text>
+                      {idea.explanation ? <Text style={styles.ideaWhy}>{idea.explanation}</Text> : null}
                     </View>
                   ))
-                ) : (
-                  <Text style={[styles.emptySubtext, { color: theme.tabIconDefault, textAlign: 'center', paddingVertical: 20 }]}>
-                    No outside ideas match those preferences for this occasion.
-                  </Text>
                 )}
-              </>
+              </View>
             )}
           </>
         )}
       </ScrollView>
 
-      {/* ================= Occasion picker modal ================= */}
+      {/* occasion picker */}
       <Modal visible={pickerVisible} animationType="slide" onRequestClose={() => setPickerVisible(false)}>
-        <View style={[styles.modalContainer, { backgroundColor: theme.background }]}>
-          <RNView style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>What's the occasion?</Text>
-            <TouchableOpacity onPress={() => setPickerVisible(false)} style={[styles.modalClose, { backgroundColor: theme.card, borderColor: theme.border }]}>
-              <X size={18} color={theme.text} />
+        <View style={styles.pickerScreen}>
+          <LinearGradient colors={[...Crimson.occasionBg]} locations={[0, 0.3, 0.78]} style={StyleSheet.absoluteFill} />
+          <View style={styles.pickerHeader}>
+            <Text style={styles.pickerTitle}>What's the occasion?</Text>
+            <TouchableOpacity style={styles.pickerClose} onPress={() => setPickerVisible(false)}>
+              <X size={17} color="#fff" />
             </TouchableOpacity>
-          </RNView>
-
-          <RNView style={[styles.searchBar, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <Search size={16} color={theme.tabIconDefault} style={{ marginRight: 8 }} />
+          </View>
+          <View style={styles.pickerSearch}>
+            <Search size={15} color="rgba(255,255,255,0.8)" />
             <TextInput
-              placeholder="Search: wedding, brunch, garba, interview..."
-              placeholderTextColor={theme.tabIconDefault}
+              placeholder="Search: sangeet, brunch, garba…"
+              placeholderTextColor={Crimson.white55}
               value={search}
               onChangeText={setSearch}
               autoFocus
-              style={[styles.searchInput, { color: theme.text }]}
+              style={styles.pickerInput}
             />
-          </RNView>
-
-          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 }}>
+          </View>
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
             {CATEGORY_ORDER.map((cat) => {
               const group = filteredOccasions.filter((o) => o.category === cat);
-              if (group.length === 0) return null;
+              if (!group.length) return null;
               return (
-                <RNView key={cat} style={{ marginBottom: 8 }}>
-                  <Text style={[styles.groupLabel, { color: theme.tabIconDefault }]}>{cat}</Text>
-                  {group.map((occ) => {
-                    const Icon = occ.icon;
-                    const isSelected = selectedOccasion === occ.id;
-                    return (
-                      <TouchableOpacity
-                        key={occ.id}
-                        onPress={() => pickOccasion(occ.id)}
-                        style={[styles.occasionRow, { backgroundColor: isSelected ? `${theme.tint}12` : 'transparent' }]}
-                      >
-                        <RNView style={[styles.iconCircle, { backgroundColor: `${occ.color}15` }]}>
-                          <Icon size={18} color={occ.color} />
-                        </RNView>
-                        <Text style={[styles.occasionRowText, { color: theme.text }]}>{occ.id}</Text>
-                        {isSelected && <Check size={18} color={theme.tint} />}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </RNView>
+                <View key={cat} style={{ marginBottom: 6 }}>
+                  <Text style={styles.groupLabel}>{cat.toUpperCase()}</Text>
+                  {group.map((occ) => (
+                    <TouchableOpacity
+                      key={occ.id}
+                      style={[styles.occRow, selectedOccasion === occ.id && styles.occRowActive]}
+                      onPress={() => pickOccasion(occ.id)}
+                    >
+                      <Text style={styles.occRowText}>{occ.id}</Text>
+                      {selectedOccasion === occ.id && <Check size={16} color="#fff" />}
+                    </TouchableOpacity>
+                  ))}
+                </View>
               );
             })}
           </ScrollView>
         </View>
       </Modal>
 
-      {/* ================= Specs sheet (outside ideas) ================= */}
-      <Modal visible={specsVisible} animationType="fade" transparent onRequestClose={() => setSpecsVisible(false)}>
-        <RNView style={styles.sheetBackdrop}>
-          <View style={[styles.sheet, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <Text style={[styles.sheetTitle, { color: theme.text }]}>Any preferences?</Text>
-            <Text style={[styles.sheetSub, { color: theme.tabIconDefault }]}>
-              Optional — leave on "Any" and I'll use your profile.
-            </Text>
-
-            <Text style={[styles.sheetLabel, { color: theme.text }]}>Coverage</Text>
-            <RNView style={styles.chipRow}>
+      {/* preferences sheet */}
+      <Modal visible={specsVisible} transparent animationType="fade" onRequestClose={() => setSpecsVisible(false)}>
+        <View style={styles.sheetBackdrop}>
+          <View style={styles.sheet}>
+            <Text style={styles.sheetTitle}>Any preferences?</Text>
+            <Text style={styles.sheetSub}>Optional — leave on "Any" and I'll use your profile.</Text>
+            <Text style={styles.sheetLabel}>Coverage</Text>
+            <View style={styles.chipRow}>
               {COVERAGE_OPTIONS.map((c) => (
-                <TouchableOpacity
-                  key={c}
-                  onPress={() => setSpecCoverage(c)}
-                  style={[styles.chip, { backgroundColor: specCoverage === c ? theme.tint : 'transparent', borderColor: specCoverage === c ? theme.tint : theme.border }]}
-                >
-                  <Text style={{ color: specCoverage === c ? '#FFF' : theme.text, fontSize: 12, fontWeight: '600' }}>{c}</Text>
+                <TouchableOpacity key={c} onPress={() => setSpecCoverage(c)}
+                  style={[styles.sheetChip, specCoverage === c && styles.sheetChipActive]}>
+                  <Text style={[styles.sheetChipText, specCoverage === c && { color: '#fff' }]}>{c}</Text>
                 </TouchableOpacity>
               ))}
-            </RNView>
-
-            <Text style={[styles.sheetLabel, { color: theme.text }]}>Style lane</Text>
-            <RNView style={styles.chipRow}>
+            </View>
+            <Text style={styles.sheetLabel}>Style lane</Text>
+            <View style={styles.chipRow}>
               {STYLE_OPTIONS.map((s) => (
-                <TouchableOpacity
-                  key={s}
-                  onPress={() => setSpecStyle(s)}
-                  style={[styles.chip, { backgroundColor: specStyle === s ? theme.tint : 'transparent', borderColor: specStyle === s ? theme.tint : theme.border }]}
-                >
-                  <Text style={{ color: specStyle === s ? '#FFF' : theme.text, fontSize: 12, fontWeight: '600' }}>{s}</Text>
+                <TouchableOpacity key={s} onPress={() => setSpecStyle(s)}
+                  style={[styles.sheetChip, specStyle === s && styles.sheetChipActive]}>
+                  <Text style={[styles.sheetChipText, specStyle === s && { color: '#fff' }]}>{s}</Text>
                 </TouchableOpacity>
               ))}
-            </RNView>
-
+            </View>
             <TouchableOpacity
+              activeOpacity={0.9}
               onPress={() => {
                 setSpecsVisible(false);
                 setShowIdeas(true);
                 if (selectedOccasion) fetchIdeas(selectedOccasion);
-              }}
-              style={[styles.wearBtn, { backgroundColor: theme.tint, marginTop: 18 }]}
-            >
-              <Text style={styles.wearBtnText}>Show Ideas</Text>
+              }}>
+              <LinearGradient colors={[...Crimson.cta]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0.3 }} style={[styles.cta, { marginTop: 18 }]}>
+                <Text style={styles.ctaText}>Show Ideas</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
-        </RNView>
+        </View>
       </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 16,
-  },
-  heading: {
-    fontSize: 22,
-    fontWeight: '800',
-    marginTop: 16,
-  },
-  subheading: {
-    fontSize: 14,
-    marginBottom: 16,
-  },
-  selectorBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1.5,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    height: 56,
-    marginBottom: 16,
-  },
-  selectorInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flex: 1,
-  },
-  selectorText: {
-    fontSize: 15,
-    fontWeight: '600',
-    flex: 1,
-  },
-  iconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  matchesScroll: {
-    paddingBottom: 40,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 12,
-  },
-  matchCard: {
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 16,
-    marginBottom: 16,
-  },
-  matchHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-    backgroundColor: 'transparent',
-  },
-  matchTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    flex: 1,
-    marginRight: 8,
-  },
-  matchBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  matchBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  matchDesc: {
-    fontSize: 13,
-    lineHeight: 18,
-    marginBottom: 12,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: 'transparent',
-    marginBottom: 4,
-  },
-  metaText: {
-    fontSize: 12,
-  },
-  itemsPreviewRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 12,
-    backgroundColor: 'transparent',
-  },
-  itemPreviewCard: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: 'transparent',
-  },
-  itemPreviewImg: {
-    width: '100%',
-    height: 110,
-    resizeMode: 'cover',
-  },
-  itemPreviewName: {
-    fontSize: 11,
-    fontWeight: '600',
-    padding: 6,
-    textAlign: 'center',
-  },
-  wearBtn: {
-    borderRadius: 12,
-    paddingVertical: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  wearBtnText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  ideasBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderWidth: 1.5,
-    borderRadius: 14,
-    borderStyle: 'dashed',
-    paddingVertical: 14,
-    marginTop: 4,
-    marginBottom: 20,
-  },
-  ideasBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  ideasHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 12,
-    backgroundColor: 'transparent',
-  },
-  emptyContainer: {
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  emptyText: {
-    fontSize: 15,
-    fontWeight: '700',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  emptySubtext: {
-    fontSize: 12,
-    textAlign: 'center',
-    lineHeight: 17,
-  },
-  centerContainer: {
-    paddingVertical: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-  },
-  loadingText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  retryBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 10,
-  },
-  retryBtnText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  matchImageContainer: {
-    width: '100%',
-    height: 220,
-    borderRadius: 14,
-    overflow: 'hidden',
-    marginBottom: 12,
-    borderWidth: 1,
-  },
-  matchImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  explanationBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 14,
-  },
-  explanationText: {
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  // Picker modal
-  modalContainer: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 56,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14,
-    backgroundColor: 'transparent',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  modalClose: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  screen: { flex: 1, backgroundColor: '#b00c28' },
+  header: { paddingHorizontal: 22 },
+  kicker: { color: 'rgba(255,255,255,0.75)', fontFamily: Fonts.body, fontSize: 10, letterSpacing: 1.6 },
+  title: { color: '#fff', fontFamily: Fonts.display, fontSize: 22, marginTop: 2 },
   searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 46,
-    marginBottom: 14,
+    flexDirection: 'row', alignItems: 'center', gap: 11, marginTop: 14, marginBottom: 12,
+    backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.24)',
+    borderRadius: 14, paddingHorizontal: 14, paddingVertical: 13,
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '500',
-    height: '100%',
+  searchText: { flex: 1, color: '#fff', fontFamily: Fonts.body, fontSize: 13.5 },
+  clearDot: {
+    width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.22)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  groupLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 6,
-    marginTop: 8,
+  // why 26: the design insets its cards a touch more from the edges than 22
+  scroll: { paddingHorizontal: 26, paddingBottom: 110 },
+
+  outsideChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.26)',
+    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,
   },
-  occasionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 9,
-    paddingHorizontal: 8,
-    borderRadius: 12,
+  outsideChipText: { color: '#fff', fontFamily: Fonts.body, fontSize: 11 },
+  prefsRow: {
+    marginTop: 11, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)',
+    borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10,
   },
-  occasionRowText: {
-    fontSize: 14,
-    fontWeight: '600',
-    flex: 1,
+  prefsText: { color: '#fff', fontFamily: Fonts.body, fontSize: 11 },
+
+  centerBox: { paddingVertical: 46, alignItems: 'center', gap: 12 },
+  loadingText: { color: 'rgba(255,255,255,0.85)', fontFamily: Fonts.bodyMed, fontSize: 13 },
+  errorText: { color: '#fff', fontFamily: Fonts.bodyMed, fontSize: 13, textAlign: 'center' },
+  retryBtn: { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 10, paddingHorizontal: 20, paddingVertical: 10 },
+  retryText: { color: '#fff', fontFamily: Fonts.bodyBold, fontSize: 13 },
+  emptyBox: { alignItems: 'center', paddingVertical: 54, gap: 10, paddingHorizontal: 12 },
+  emptyTitle: { color: '#fff', fontFamily: Fonts.display, fontSize: 16, textAlign: 'center' },
+  emptySub: { color: 'rgba(255,255,255,0.7)', fontFamily: Fonts.bodyMed, fontSize: 12, textAlign: 'center', lineHeight: 17 },
+
+  viewerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 14 },
+  viewerTitle: { color: '#fff', fontFamily: Fonts.display, fontSize: 17 },
+  viewerSub: { color: 'rgba(255,255,255,0.6)', fontFamily: Fonts.bodyMed, fontSize: 11, marginTop: 2 },
+  redoBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  redoText: { color: '#fff', fontFamily: Fonts.bodyBold, fontSize: 12 },
+
+  matchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  matchPill: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 11, paddingVertical: 6, borderRadius: 999 },
+  matchPillText: { color: '#fff', fontFamily: Fonts.bodyBold, fontSize: 11 },
+  navCircle: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  // Specs sheet
-  sheetBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
+
+  badgeRow: { flexDirection: 'row', gap: 8, marginBottom: 10, alignItems: 'center' },
+  pieceBadge: {
+    minWidth: 34, height: 34, borderRadius: 11, backgroundColor: 'rgba(255,255,255,0.16)',
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8,
   },
+  pieceBadgeActive: { backgroundColor: Crimson.ink },
+  pieceBadgeText: { color: '#fff', fontFamily: Fonts.body, fontSize: 11 },
+
+  pieceCard: {
+    flexDirection: 'row', gap: 14, borderRadius: 20, padding: 15, marginBottom: 11,
+    backgroundColor: 'rgba(255,255,255,0.24)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.32)',
+  },
+  pieceCardHero: { backgroundColor: 'rgba(255,255,255,0.3)', padding: 17 },
+  pieceImg: { width: 68, height: 68, borderRadius: 13, backgroundColor: 'rgba(0,0,0,0.2)' },
+  pieceImgHero: { width: 100, height: 100, borderRadius: 15, backgroundColor: 'rgba(0,0,0,0.2)' },
+  pieceMeta: { color: 'rgba(255,255,255,0.75)', fontFamily: Fonts.body, fontSize: 9, letterSpacing: 0.8 },
+  pieceName: { color: '#fff', fontFamily: Fonts.display, fontSize: 16, lineHeight: 20, marginTop: 3, textTransform: 'capitalize' },
+
+  whyBox: {
+    marginTop: 6, borderRadius: 18, backgroundColor: 'rgba(20,8,10,0.42)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', padding: 16,
+  },
+  whyHeader: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 6 },
+  whyLabel: { color: '#fff', fontFamily: Fonts.bodyBold, fontSize: 10.5, letterSpacing: 0.9 },
+  whyText: { color: 'rgba(255,255,255,0.85)', fontFamily: Fonts.bodyReg, fontSize: 11.5, lineHeight: 17 },
+
+  // why the soft crimson shadow: the design's Plan to Wear button carries a
+  // faint glow, not a hard drop shadow
+  cta: {
+    borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginTop: 16,
+    shadowColor: Crimson.crimsonBright, shadowOpacity: 0.4, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 8,
+  },
+  ctaText: { color: '#fff', fontFamily: Fonts.bodyBold, fontSize: 13.5 },
+
+  ideasTitle: { color: '#fff', fontFamily: Fonts.display, fontSize: 17, marginBottom: 12 },
+  ideaCard: {
+    borderRadius: 20, backgroundColor: 'rgba(20,8,10,0.42)', borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)', padding: 14, marginBottom: 14,
+  },
+  ideaImg: { width: '100%', height: 210, borderRadius: 14, marginBottom: 11, backgroundColor: 'rgba(0,0,0,0.25)' },
+  ideaChipsRow: { flexDirection: 'row', gap: 6, marginBottom: 8, flexWrap: 'wrap' },
+  ideaChip: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 8 },
+  ideaChipText: { color: '#fff', fontFamily: Fonts.bodyMed, fontSize: 9.5 },
+  ideaTitle: { color: '#fff', fontFamily: Fonts.display, fontSize: 17, lineHeight: 21 },
+  ideaMeta: { color: 'rgba(255,255,255,0.6)', fontFamily: Fonts.bodyMed, fontSize: 10, marginTop: 5 },
+  ideaWhy: { color: 'rgba(255,255,255,0.8)', fontFamily: Fonts.bodyReg, fontSize: 11.5, lineHeight: 16, marginTop: 9 },
+
+  pickerScreen: { flex: 1, paddingTop: 56, paddingHorizontal: 18 },
+  pickerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  pickerTitle: { color: '#fff', fontFamily: Fonts.display, fontSize: 20 },
+  pickerClose: {
+    width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  pickerSearch: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.24)',
+    borderRadius: 13, paddingHorizontal: 13, marginBottom: 14,
+  },
+  pickerInput: { flex: 1, color: '#fff', fontFamily: Fonts.bodyMed, fontSize: 14, paddingVertical: 12 },
+  groupLabel: { color: 'rgba(255,255,255,0.6)', fontFamily: Fonts.body, fontSize: 10.5, letterSpacing: 1.2, marginTop: 10, marginBottom: 6 },
+  occRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 10, paddingHorizontal: 10, borderRadius: 12,
+  },
+  occRowActive: { backgroundColor: 'rgba(255,255,255,0.14)' },
+  occRowText: { color: '#fff', fontFamily: Fonts.body, fontSize: 14 },
+
+  sheetBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
   sheet: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderWidth: 1,
-    padding: 22,
-    paddingBottom: 38,
+    backgroundColor: '#2a0810', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', padding: 22, paddingBottom: 38,
   },
-  sheetTitle: {
-    fontSize: 18,
-    fontWeight: '800',
+  sheetTitle: { color: '#fff', fontFamily: Fonts.display, fontSize: 18 },
+  sheetSub: { color: 'rgba(255,255,255,0.6)', fontFamily: Fonts.bodyMed, fontSize: 12, marginTop: 2, marginBottom: 14 },
+  sheetLabel: { color: '#fff', fontFamily: Fonts.body, fontSize: 13, marginTop: 6, marginBottom: 8 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
+  sheetChip: {
+    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.24)', borderRadius: 18,
+    paddingHorizontal: 12, paddingVertical: 7,
   },
-  sheetSub: {
-    fontSize: 12,
-    marginTop: 2,
-    marginBottom: 14,
-  },
-  sheetLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    marginBottom: 8,
-    marginTop: 6,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 8,
-    backgroundColor: 'transparent',
-  },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 18,
-    borderWidth: 1.5,
-  },
+  sheetChipActive: { backgroundColor: Crimson.crimson, borderColor: Crimson.crimson },
+  sheetChipText: { color: 'rgba(255,255,255,0.85)', fontFamily: Fonts.body, fontSize: 12 },
 });

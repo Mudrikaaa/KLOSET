@@ -12,6 +12,9 @@ interface StyledDropdownProps {
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  // why: the app is pinned to the dark scheme globally, but Add Garment is
+  // the design's one blush room — `light` opts a dropdown into light tokens.
+  light?: boolean;
 }
 
 export default function StyledDropdown({
@@ -21,10 +24,11 @@ export default function StyledDropdown({
   onChange,
   placeholder = 'Select an option',
   disabled = false,
+  light = false,
 }: StyledDropdownProps) {
   const [modalVisible, setModalVisible] = useState(false);
   const colorScheme = useColorScheme();
-  const themeColors = Colors[colorScheme];
+  const themeColors = Colors[light ? 'light' : colorScheme];
 
   // Map options to consistent { label, value } array
   const normalizedOptions = options.map((opt) => {
@@ -44,7 +48,9 @@ export default function StyledDropdown({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
+      {/* explicit colors everywhere: Themed defaults follow the (dark) global
+          scheme, which would render white-on-white in light mode */}
+      <Text style={[styles.label, { color: themeColors.text }]}>{label}</Text>
       
       <TouchableOpacity
         style={[
@@ -61,6 +67,7 @@ export default function StyledDropdown({
       >
         <Text style={[
           styles.dropdownValue,
+          { color: themeColors.text },
           !value && { color: themeColors.tabIconDefault }
         ]}>
           {displayLabel}
@@ -85,7 +92,7 @@ export default function StyledDropdown({
             ]}
           >
             <View style={styles.header}>
-              <Text style={styles.headerTitle}>{label}</Text>
+              <Text style={[styles.headerTitle, { color: themeColors.text }]}>{label}</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <Ionicons name="close" size={24} color={themeColors.text} />
               </TouchableOpacity>
@@ -100,13 +107,14 @@ export default function StyledDropdown({
                   <TouchableOpacity
                     style={[
                       styles.optionItem,
-                      { borderBottomColor: themeColors.border },
+                      { borderBottomColor: themeColors.border, backgroundColor: 'transparent' },
                       isSelected && { backgroundColor: themeColors.card }
                     ]}
                     onPress={() => handleSelect(item.value)}
                   >
                     <Text style={[
                       styles.optionText,
+                      { color: themeColors.text },
                       isSelected && { color: themeColors.tint, fontWeight: 'bold' }
                     ]}>
                       {item.label}
